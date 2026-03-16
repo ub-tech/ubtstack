@@ -46,7 +46,7 @@ git clone https://github.com/your-org/your-target-repo.git
 ```bash
 cd ubtstack
 npm install
-cp .env.example .env   # Fill in LINEAR_API_KEY, APPROVAL_REQUIRED_FROM, TARGET_REPO_PATH
+cp .env.example .env   # Fill in LINEAR_API_KEY, APPROVAL_REQUIRED_FROM, UBTSTACK_PATH
 ```
 
 ### 3. Configure Linear (from ubtstack/)
@@ -148,7 +148,7 @@ See `.env.example`. The essentials:
 | `LINEAR_API_KEY` | Yes |
 | `APPROVAL_REQUIRED_FROM` | Yes — GitHub handle for PR approval |
 | `TARGET_REPO_URL` | Yes — repo clone URL for Symphony |
-| `TARGET_REPO_PATH` | Yes — local path to target repo (default: `../your-target-repo`) |
+| `UBTSTACK_PATH` | Yes — local path to ubtstack tooling repo (default: `../ubtstack`) |
 | `LINEAR_PROJECT_SLUG` | Yes — Symphony project targeting |
 
 ## Contributing

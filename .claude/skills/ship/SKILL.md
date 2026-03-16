@@ -87,9 +87,9 @@ cargo clippy -- -D warnings 2>&1
 If the planning manifest and review packet exist, run the completion gate:
 
 ```bash
-npx tsx scripts/symphony-complete-ticket.ts \
-  ${TARGET_REPO_PATH:-.}/.claude/state/planning-manifest.json \
-  ${TARGET_REPO_PATH:-.}/.claude/state/review-packet.json \
+npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/symphony-complete-ticket.ts \
+  .claude/state/planning-manifest.json \
+  .claude/state/review-packet.json \
   --ticket "$TICKET_ID" \
   --current-status "In Progress" \
   --mode complete

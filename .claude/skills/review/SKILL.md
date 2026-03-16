@@ -56,10 +56,10 @@ Follow the output format specified in the checklist. Respect the suppressions â€
 
 ## Step 4.5: Review-packet validation (if manifest exists)
 
-If `${TARGET_REPO_PATH:-.}/.claude/state/planning-manifest.json` and `${TARGET_REPO_PATH:-.}/.claude/state/review-packet.json` both exist, run the review-packet validator:
+If `.claude/state/planning-manifest.json` and `.claude/state/review-packet.json` both exist, run the review-packet validator:
 
 ```bash
-npx tsx scripts/validate-review-packet.ts ${TARGET_REPO_PATH:-.}/.claude/state/planning-manifest.json ${TARGET_REPO_PATH:-.}/.claude/state/review-packet.json
+npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/validate-review-packet.ts .claude/state/planning-manifest.json .claude/state/review-packet.json
 ```
 
 Include the validation results in the review output:

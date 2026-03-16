@@ -4,9 +4,9 @@ Compile the output of `/plan-ceo-review` and `/plan-eng-review` into a machine-r
 
 ## Required output
 
-Write `${TARGET_REPO_PATH:-.}/.claude/state/planning-manifest.json` using `.claude/templates/planning-manifest.template.json`.
+Write `.claude/state/planning-manifest.json` using `${UBTSTACK_PATH:-../ubtstack}/.claude/templates/planning-manifest.template.json`.
 
-Create the directory first if it doesn't exist: `mkdir -p "${TARGET_REPO_PATH:-.}/.claude/state"`
+Create the directory first if it doesn't exist: `mkdir -p .claude/state`
 
 ## Rules
 
@@ -96,7 +96,7 @@ Each business task must include:
 
 ## Final steps
 
-1. Write the manifest to `${TARGET_REPO_PATH:-.}/.claude/state/planning-manifest.json`.
-2. Dry-run Linear payloads: `npx tsx scripts/import-plan-to-linear.ts ${TARGET_REPO_PATH:-.}/.claude/state/planning-manifest.json`
-3. Create issues in Linear: `npx tsx scripts/import-plan-to-linear.ts ${TARGET_REPO_PATH:-.}/.claude/state/planning-manifest.json --execute --team ENG`
-4. Generate ticket-specific execution briefs for Codex using `npx tsx scripts/generate-codex-prompt.ts`.
+1. Write the manifest to `.claude/state/planning-manifest.json`.
+2. Dry-run Linear payloads: `npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/import-plan-to-linear.ts .claude/state/planning-manifest.json`
+3. Create issues in Linear: `npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/import-plan-to-linear.ts .claude/state/planning-manifest.json --execute --team ENG`
+4. Generate ticket-specific execution briefs for Codex using `npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/generate-codex-prompt.ts`.

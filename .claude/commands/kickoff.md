@@ -51,7 +51,7 @@ The engineering step converts the approved product direction into:
 
 ## Phase 3 — Manifest
 
-Run `/plan-to-linear` to write `${TARGET_REPO_PATH:-.}/.claude/state/planning-manifest.json`.
+Run `/plan-to-linear` to write `.claude/state/planning-manifest.json`.
 That manifest must include ticket-level test requirements.
 
 ## Phase 4 — Handoff
