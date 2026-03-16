@@ -116,6 +116,34 @@ Agent workspaces (created by Symphony at runtime) follow the same layout:
 
 Agents only modify the target repo. ubtstack is read-only tooling.
 
+## Running
+
+The pipeline uses two terminals:
+
+**Terminal 1 — Claude Code** (planning, review, ship):
+```bash
+cd your-target-repo
+claude
+```
+
+**Terminal 2 — Symphony** (polls Linear, dispatches Codex agents):
+```bash
+cd ubtstack
+./bin/start-symphony.sh ../your-target-repo/WORKFLOW.md --port 3003
+```
+
+Symphony reads `LINEAR_API_KEY` from `ubtstack/.env`. The `--port` flag enables the web dashboard at `http://localhost:3003`.
+
+Set `SYMPHONY_PATH` if your symphony clone is not at `../symphony/elixir`.
+
+**After Symphony starts — trigger work in Linear:**
+
+1. Open your Linear workspace and find the issues created by `/plan-to-linear`
+2. Move the issues into the project specified by `LINEAR_PROJECT_SLUG` in your `.env`
+3. Move issues to **Todo** status to kick off development — Symphony will pick them up automatically and dispatch Codex agents
+
+Symphony only claims issues that are in the **Todo** state within the configured project. Move them one at a time or in batches depending on how many concurrent agents you want running.
+
 ## Usage
 
 Start your Claude instance from your target repo directory. ubtstack skills are invoked from there.
