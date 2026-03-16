@@ -1,8 +1,8 @@
-# ubt-stack
+# ubtstack
 
-**ubt-stack** is an open-source, AI-native SDLC pipeline by [Unbroken Technologies LLC](https://github.com/ub-tech). It plans, tickets, implements, reviews, stages, and ships — orchestrated by Claude, Symphony, Linear, and Codex.
+**ubtstack** is an open-source, AI-native SDLC pipeline by [Unbroken Technologies LLC](https://github.com/ub-tech). It plans, tickets, implements, reviews, stages, and ships — orchestrated by Claude, Symphony, Linear, and Codex.
 
-Repo-agnostic. ubt-stack is the pipeline — your product repo is the target. To connect a target repo, copy `WORKFLOW.md` (agent execution contract), add a `staging/docker-compose.yml` (ephemeral CD environment), and wire up a `.github/workflows/cd-staging.yml` (CI that runs CD tests). ubt-stack is never modified by agents.
+Repo-agnostic. ubtstack is the pipeline — your product repo is the target. To connect a target repo, copy `WORKFLOW.md` (agent execution contract), add a `staging/docker-compose.yml` (ephemeral CD environment), and wire up a `.github/workflows/cd-staging.yml` (CI that runs CD tests). ubtstack is never modified by agents.
 
 ## How it works
 
@@ -17,7 +17,7 @@ Repo-agnostic. ubt-stack is the pipeline — your product repo is the target. To
   → Human approves and merges
 ```
 
-One ticket = one branch = one PR. All code lives in the target repo. ubt-stack is never modified by agents — it only provides the pipeline tooling.
+One ticket = one branch = one PR. All code lives in the target repo. ubtstack is never modified by agents — it only provides the pipeline tooling.
 
 ### Customizable test stages
 
@@ -36,20 +36,20 @@ Your target repo owns the staging environment (`staging/docker-compose.yml`) and
 
 ```bash
 cd your-workspace
-git clone https://github.com/your-org/ubt-stack.git
+git clone https://github.com/your-org/ubtstack.git
 git clone https://github.com/odysseus0/symphony.git
 git clone https://github.com/your-org/your-target-repo.git
 ```
 
-### 2. Install ubt-stack dependencies (from ubt-stack/)
+### 2. Install ubtstack dependencies (from ubtstack/)
 
 ```bash
-cd ubt-stack
+cd ubtstack
 npm install
 cp .env.example .env   # Fill in LINEAR_API_KEY, APPROVAL_REQUIRED_FROM, TARGET_REPO_PATH
 ```
 
-### 3. Configure Linear (from ubt-stack/)
+### 3. Configure Linear (from ubtstack/)
 
 ```bash
 npx tsx scripts/linear-discover-team.ts
@@ -69,26 +69,26 @@ mise trust && mise install && mise exec -- mix setup && mise exec -- mix build
 
 ```bash
 cd ../your-target-repo
-cp ../ubt-stack/WORKFLOW.md .                # Copy and patch frontmatter
+cp ../ubtstack/WORKFLOW.md .                # Copy and patch frontmatter
 npx skills add odysseus0/symphony -a codex -s linear land commit push pull debug --copy -y
 /staging-setup                               # Generate staging environment
 ```
 
 ### Directory structure
 
-ubt-stack, Symphony, and your target repo are **siblings** — not nested inside each other. Symphony's `after_create` hook automatically clones the target repo and ubt-stack side-by-side into each agent workspace.
+ubtstack, Symphony, and your target repo are **siblings** — not nested inside each other. Symphony's `after_create` hook automatically clones the target repo and ubtstack side-by-side into each agent workspace.
 
 ```
 your-root/
 ├── symphony/              # Symphony orchestrator (Elixir)
 │   └── elixir/
-├── ubt-stack/             # SDLC pipeline tooling (this repo)
+├── ubtstack/             # SDLC pipeline tooling (this repo)
 │   ├── .claude/skills/    # Slash command implementations
 │   ├── scripts/           # Validation, sync, ticket creation
 │   └── WORKFLOW.md        # Agent execution contract (copy to target repo)
 └── your-target-repo/      # Your product code (the only repo agents modify)
     ├── .claude/state/      # Planning manifests, review packets (project state)
-    ├── WORKFLOW.md         # Copied from ubt-stack, frontmatter customized
+    ├── WORKFLOW.md         # Copied from ubtstack, frontmatter customized
     ├── staging/            # CD environment (docker-compose, seed data)
     └── .github/workflows/  # CI + CD workflows
 ```
@@ -97,11 +97,11 @@ Agent workspaces (created by Symphony at runtime) follow the same layout:
 
 ```
 ~/code/workspaces/<ticket-id>/
-├── ubt-stack/             # Cloned automatically by after_create hook
+├── ubtstack/             # Cloned automatically by after_create hook
 └── your-target-repo/      # Cloned automatically, checked out to symphony/<ticket-id>
 ```
 
-Agents only modify the target repo. ubt-stack is read-only tooling.
+Agents only modify the target repo. ubtstack is read-only tooling.
 
 ## Usage
 
@@ -151,7 +151,7 @@ See `.env.example`. The essentials:
 
 ## Contributing
 
-ubt-stack is designed to be forked and customized for specific domains. The core pipeline is stack-agnostic — adapt the skills, test policies, and staging templates to fit your team's workflow.
+ubtstack is designed to be forked and customized for specific domains. The core pipeline is stack-agnostic — adapt the skills, test policies, and staging templates to fit your team's workflow.
 
 Domain-specific forks in progress:
 - **Blockchain / smart contract development** — custom CD staging with Anvil, Foundry test integration, trust-boundary review checks
@@ -160,7 +160,7 @@ To contribute back to the core: open a PR against `main`. For domain-specific ex
 
 ## Acknowledgments
 
-The skill-based workflow pattern in ubt-stack was inspired by [gstack](https://github.com/garrytan/gstack) by Garry Tan. The core planning, review, QA, ship, and retro skills were derived from gstack's approach and extended with Linear integration, Symphony orchestration, review-packet validation, and completion gates.
+The skill-based workflow pattern in ubtstack was inspired by [gstack](https://github.com/garrytan/gstack) by Garry Tan. The core planning, review, QA, ship, and retro skills were derived from gstack's approach and extended with Linear integration, Symphony orchestration, review-packet validation, and completion gates.
 
 See also [claude-code-best-practice](https://github.com/shanraisshan/claude-code-best-practice) for community patterns around Claude Code workflows.
 
