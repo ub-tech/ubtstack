@@ -70,6 +70,19 @@ mise trust && mise install && mise exec -- mix setup && mise exec -- mix build
 ```bash
 cd ../your-target-repo
 cp ../ubtstack/WORKFLOW.md .                # Copy and patch frontmatter
+
+# Symlink ubtstack skills into target repo
+mkdir -p .claude/skills
+for skill in ../ubtstack/.claude/skills/*/; do
+  ln -sf "$(realpath "$skill")" .claude/skills/
+done
+
+# Symlink ubtstack commands into target repo
+mkdir -p .claude/commands
+for cmd in ../ubtstack/.claude/commands/*; do
+  ln -sf "$(realpath "$cmd")" .claude/commands/
+done
+
 npx skills add odysseus0/symphony -a codex -s linear land commit push pull debug --copy -y
 /staging-setup                               # Generate staging environment
 ```
