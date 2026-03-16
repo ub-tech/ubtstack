@@ -24,33 +24,35 @@ hooks:
     (cd ubt-stack && npm install)
     mkdir -p your-target-repo/.claude/state
   before_run: |
-    # Ensure ubt-stack is a valid git clone (not a partial/broken directory)
+    set -e
+    # Derive issue identifier from workspace directory name (e.g. ~/code/workspaces/ENG-249 → ENG-249)
+    ISSUE_ID="$(basename "$(pwd)")"
+    # Ensure ubt-stack exists
     if [ ! -d ubt-stack/.git ]; then
       rm -rf ubt-stack
       git clone --depth 1 $UBT_STACK_URL ubt-stack
       (cd ubt-stack && npm install)
-    fi
-    # Pull latest tooling from ubt-stack (use FETCH_HEAD for shallow clone reliability)
-    (cd ubt-stack && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- scripts/ .claude/templates/)
-    # Pull latest state from target repo
-    mkdir -p your-target-repo/.claude/state
-    (cd your-target-repo && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- .claude/state/ 2>/dev/null || true)
-    # Set up a fresh implementation branch in the target repo from origin/main.
-    # Use versioned suffix (-v2, -v3, ...) if the base branch already exists on the remote.
-    pick_branch() {
-      local base="symphony/$ISSUE_IDENTIFIER"
-      if ! git ls-remote --heads origin "$base" | grep -q "$base"; then
-        echo "$base"; return
-      fi
-      local v=2
-      while git ls-remote --heads origin "${base}-v${v}" | grep -q "${base}-v${v}"; do v=$((v+1)); done
-      echo "${base}-v${v}"
-    }
-    if [ -d your-target-repo ]; then
-      (cd your-target-repo && git fetch origin && BRANCH=$(pick_branch) && git checkout -B "$BRANCH" origin/main)
     else
-      git fetch origin && BRANCH=$(pick_branch) && git checkout -B "$BRANCH" origin/main
+      (cd ubt-stack && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- scripts/ .claude/templates/)
     fi
+    # Ensure target repo is a valid git clone
+    if [ ! -d your-target-repo/.git ]; then
+      rm -rf your-target-repo
+      git clone $TARGET_REPO_URL your-target-repo
+    fi
+    # Pull latest state and set up branch
+    cd your-target-repo
+    git fetch origin
+    git checkout FETCH_HEAD -- .claude/state/ 2>/dev/null || true
+    BASE="symphony/$ISSUE_ID"
+    if ! git ls-remote --heads origin "$BASE" | grep -q "$BASE"; then
+      BRANCH="$BASE"
+    else
+      V=2
+      while git ls-remote --heads origin "${BASE}-v${V}" | grep -q "${BASE}-v${V}"; do V=$((V+1)); done
+      BRANCH="${BASE}-v${V}"
+    fi
+    git checkout -B "$BRANCH" origin/main
   before_remove: |
     cd your-target-repo 2>/dev/null || exit 0
     branch=$(git branch --show-current 2>/dev/null)
