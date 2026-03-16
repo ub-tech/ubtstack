@@ -1,0 +1,22 @@
+{
+  "name": "ubt-stack",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "import-plan": "tsx scripts/import-plan-to-linear.ts",
+    "generate-codex-prompt": "tsx scripts/generate-codex-prompt.ts",
+    "validate-review-packet": "tsx scripts/validate-review-packet.ts",
+    "symphony-complete-ticket": "tsx scripts/symphony-complete-ticket.ts",
+    "resolve-transition": "tsx scripts/resolve-linear-transition.ts",
+    "linear-discover": "tsx scripts/linear-discover-team.ts"
+  },
+  "dependencies": {
+    "@linear/sdk": "^29.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

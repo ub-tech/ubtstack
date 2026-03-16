@@ -1,0 +1,14 @@
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+dist/
+
+# State (generated at runtime)
+.claude/state/
+
+# OS
+.DS_Store

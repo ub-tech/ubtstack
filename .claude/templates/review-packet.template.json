@@ -1,0 +1,61 @@
+{
+  "feature_id": "PLAN-001",
+  "ticket_id": "ENG-101",
+  "linear_issue": "ENG-101",
+  "branch": "feature/ENG-101-example",
+  "pr": {
+    "title": "PR title",
+    "url": "https://example.com/pr/123"
+  },
+  "implementation_summary": {
+    "files_changed": [
+      "src/example.rs"
+    ],
+    "tests_run": [
+      "cargo test"
+    ],
+    "tests_passed": true,
+    "open_questions": [],
+    "notes": [
+      "Any implementation notes or caveats"
+    ],
+    "test_matrix": {
+      "generated_categories": [
+        "unit",
+        "integration",
+        "smoke"
+      ],
+      "skipped_categories": [
+        {
+          "category": "load",
+          "reason": "No throughput-sensitive path changed"
+        }
+      ],
+      "error_path_coverage": [
+        "invalid input test",
+        "boundary value test"
+      ],
+      "ci": {
+        "status": "pass",
+        "tests": [
+          {"category": "build", "status": "pass"},
+          {"category": "lint", "status": "pass"},
+          {"category": "unit", "status": "pass"},
+          {"category": "integration", "status": "pass"},
+          {"category": "smoke", "status": "pass"}
+        ]
+      },
+      "cd": {
+        "status": "pending",
+        "tests": []
+      },
+      "remaining_risks": [
+        "No full system test yet because dependent service is not available in CI"
+      ]
+    }
+  },
+  "review_checklist": [
+    "Confirm acceptance criteria are satisfied",
+    "Confirm the test portfolio is adequate for the changed surface"
+  ]
+}

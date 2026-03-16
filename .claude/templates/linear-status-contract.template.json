@@ -1,0 +1,68 @@
+{
+  "version": 2,
+  "note": "Aligned with Symphony (odysseus0/symphony) state conventions. Symphony custom states: Rework, Human Review, Merging.",
+  "default_status": "Backlog",
+  "roles": {
+    "symphony": ["Backlog", "Todo", "In Progress", "Human Review", "Rework", "Merging"],
+    "claude": ["Human Review", "Rework", "Merging", "Done"]
+  },
+  "transitions": {
+    "Backlog": {
+      "symphony": ["Todo"]
+    },
+    "Todo": {
+      "symphony": ["In Progress", "Rework"]
+    },
+    "In Progress": {
+      "symphony": ["Human Review", "Rework"]
+    },
+    "Human Review": {
+      "claude": ["Merging", "Rework"]
+    },
+    "Merging": {
+      "symphony": ["Done", "Rework"],
+      "claude": ["Done", "Rework"]
+    },
+    "Rework": {
+      "symphony": ["Todo", "In Progress"],
+      "claude": ["Todo"]
+    },
+    "Done": {}
+  },
+  "outcomes": {
+    "planning_import": {
+      "target_status": "Todo",
+      "actor": "symphony"
+    },
+    "execution_start": {
+      "target_status": "In Progress",
+      "actor": "symphony"
+    },
+    "validation_pass": {
+      "target_status": "Human Review",
+      "actor": "symphony"
+    },
+    "validation_fail": {
+      "target_status": "Rework",
+      "actor": "symphony"
+    },
+    "claude_review_pass": {
+      "target_status": "Merging",
+      "actor": "claude"
+    },
+    "claude_review_fail": {
+      "target_status": "Rework",
+      "actor": "claude"
+    },
+    "merge_complete": {
+      "target_status": "Done",
+      "actor": "symphony"
+    },
+    "replan_or_retry": {
+      "target_status": "Todo",
+      "actor": "symphony"
+    }
+  },
+  "symphony_active_states": ["Todo", "In Progress", "Merging", "Rework"],
+  "symphony_terminal_states": ["Closed", "Cancelled", "Canceled", "Duplicate", "Done"]
+}

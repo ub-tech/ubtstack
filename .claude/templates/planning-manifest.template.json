@@ -1,0 +1,202 @@
+{
+  "feature_id": "PLAN-001",
+  "title": "Example feature",
+  "summary": "One-paragraph summary of the feature.",
+  "source": {
+    "origin_commands": [
+      "/plan-ceo-review",
+      "/plan-eng-review"
+    ],
+    "requested_by": "user",
+    "planning_inputs": {
+      "prd_refs": [
+        "docs/functional/example-prd.md"
+      ],
+      "architecture_refs": [
+        "docs/technical/example-architecture.md"
+      ],
+      "other_inputs": [
+        "incident-123",
+        "feature-brief-abc"
+      ]
+    }
+  },
+  "product_review": {
+    "problem": "What problem is being solved.",
+    "goal": "Desired product outcome.",
+    "target_users": [
+      "primary user or operator"
+    ],
+    "non_goals": [
+      "Out-of-scope item"
+    ],
+    "success_criteria": [
+      "Observable success outcome"
+    ],
+    "fixed_constraints": [
+      "Constraint that cannot move"
+    ],
+    "hard_restrictions": [
+      "No new unwrap() in non-test code",
+      "All new endpoints must use existing auth middleware",
+      "p99 latency must stay under 50ms for affected paths"
+    ]
+  },
+  "engineering_review": {
+    "repos": [
+      "repo-name"
+    ],
+    "architecture_notes": [
+      "Implementation note"
+    ],
+    "risks": [
+      "Risk to manage"
+    ],
+    "default_test_policy": {
+      "always": [
+        "smoke"
+      ],
+      "conditional_catalog": [
+        "unit",
+        "integration",
+        "functional-api",
+        "regression",
+        "system",
+        "load",
+        "stress",
+        "security",
+        "fuzz",
+        "ui-api-interaction",
+        "error-path-resilience"
+      ]
+    },
+    "default_qa_policy": {
+      "always": [
+        "staging smoke pass",
+        "critical flow verification",
+        "regression verification"
+      ],
+      "conditional_catalog": [
+        "rollback plan documented",
+        "monitoring or alert updates if operational behavior changes"
+      ]
+    }
+  },
+  "existing_code_context": {
+    "repos": [
+      "repo-name"
+    ],
+    "modules": [
+      "src/api/example",
+      "src/domain/example"
+    ],
+    "current_interfaces": [
+      "GET /example",
+      "ExampleState enum"
+    ],
+    "current_tests": [
+      "tests/example_api.rs",
+      "src/domain/example/tests.rs"
+    ],
+    "known_risks": [
+      "status naming drift",
+      "legacy consumer contract"
+    ],
+    "related_prs": [
+      "PR-412"
+    ]
+  },
+  "tickets": [
+    {
+      "id": "ENG-101",
+      "title": "Bounded ticket title",
+      "repo": "repo-name",
+      "type": "backend",
+      "priority": "high",
+      "depends_on": [],
+      "labels": [
+        "backend"
+      ],
+      "scope": [
+        "Concrete implementation bullet"
+      ],
+      "implementation_guidance": [
+        "Reuse current internal state naming where possible",
+        "Do not leak internal-only metadata"
+      ],
+      "acceptance_criteria": [
+        "Concrete acceptance criterion"
+      ],
+      "allowed_paths": [
+        "src/**"
+      ],
+      "touched_components": [
+        "example API",
+        "example service"
+      ],
+      "change_classification": {
+        "domain_logic_changed": true,
+        "module_boundary_changed": true,
+        "api_contract_changed": false,
+        "user_workflow_changed": false,
+        "throughput_or_latency_path_changed": false,
+        "trust_boundary_or_external_input_changed": false,
+        "bug_fix_or_regression_risk": true,
+        "operational_behavior_changed": false
+      },
+      "test_commands": [
+        "cargo test"
+      ],
+      "required_test_categories": [],
+      "conditional_test_categories": [],
+      "qa_requirements": [],
+      "deliverables": [
+        "code change",
+        "tests",
+        "docs or schema updates"
+      ],
+      "existing_code_context": {
+        "modules": [
+          "src/api/example",
+          "src/services/example"
+        ],
+        "current_tests": [
+          "tests/example_api.rs"
+        ],
+        "interfaces": [
+          "GET /internal/example-status"
+        ],
+        "notes": [
+          "preserve current adapter behavior for legacy consumers"
+        ]
+      },
+      "escalation_rule": "If proof lifecycle naming is ambiguous, stop and return to planning."
+    }
+  ],
+  "review_requirements": {
+    "claude_review_required": true,
+    "security_review_required": false,
+    "performance_review_required": false
+  },
+  "business_tasks": [
+    {
+      "id": "BIZ-101",
+      "title": "Example business task",
+      "team": "BIZ",
+      "type": "research",
+      "priority": "high",
+      "depends_on": [],
+      "labels": ["product", "research"],
+      "description": "Detailed description of the business task.",
+      "acceptance_criteria": [
+        "Observable business outcome"
+      ],
+      "deliverables": [
+        "Research report",
+        "Synthesis document"
+      ],
+      "owner": "product-team",
+      "due_date": null
+    }
+  ]
+}
