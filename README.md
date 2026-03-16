@@ -105,6 +105,8 @@ Agents only modify the target repo. ubtstack is read-only tooling.
 
 ## Usage
 
+Start your Claude instance from your target repo directory. ubtstack skills are invoked from there.
+
 | Command | What it does |
 |---------|-------------|
 | `/kickoff` | Ingest PRD, spec, or brief |
