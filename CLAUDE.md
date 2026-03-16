@@ -3,10 +3,10 @@
 
 This repo supports a sandwich workflow:
 
-1. Claude + ubt-stack for planning and design
+1. Claude + ubtstack for planning and design
 2. Symphony + Linear for ticketization and coordination
 3. Codex for bounded implementation
-4. Claude + ubt-stack for review (includes QA), CD/staging, and ship
+4. Claude + ubtstack for review (includes QA), CD/staging, and ship
 
 ## Planning inputs
 
@@ -150,7 +150,7 @@ All agent work in this repo operates under production mode. These rules are non-
 
 - **No direct commits to main.** All changes go through feature branches and PRs.
 - **No merge without approval.** Only the approver configured in `APPROVAL_REQUIRED_FROM` can approve and merge PRs. Agents do not merge.
-- **No PR without passing tests.** `cargo build`, `cargo test`, and `cargo clippy -- -D warnings` must all pass before a PR is created.
+- **No PR without passing tests.** Your project's build, test, and lint commands must all pass before a PR is created. (Update these for your stack — e.g., `cargo build && cargo test && cargo clippy` for Rust, `npm test && npm run lint` for Node.js, etc.)
 - **No weakening tests to make them pass.** Fix the code, not the test. If a test is genuinely wrong, document why and get approval before changing it.
 - **No PRs over 400 LOC without approval.** If a diff exceeds 400 lines, warn and suggest splitting into smaller PRs.
 - **No force push.** Ever.

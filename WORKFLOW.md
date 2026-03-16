@@ -20,20 +20,20 @@ workspace:
 hooks:
   after_create: |
     git clone --depth 1 $TARGET_REPO_URL your-target-repo
-    git clone --depth 1 $UBT_STACK_URL ubt-stack
-    (cd ubt-stack && npm install)
+    git clone --depth 1 $UBT_STACK_URL ubtstack
+    (cd ubtstack && npm install)
     mkdir -p your-target-repo/.claude/state
   before_run: |
     set -e
     # Derive issue identifier from workspace directory name (e.g. ~/code/workspaces/ENG-249 → ENG-249)
     ISSUE_ID="$(basename "$(pwd)")"
-    # Ensure ubt-stack exists
-    if [ ! -d ubt-stack/.git ]; then
-      rm -rf ubt-stack
-      git clone --depth 1 $UBT_STACK_URL ubt-stack
-      (cd ubt-stack && npm install)
+    # Ensure ubtstack exists
+    if [ ! -d ubtstack/.git ]; then
+      rm -rf ubtstack
+      git clone --depth 1 $UBT_STACK_URL ubtstack
+      (cd ubtstack && npm install)
     else
-      (cd ubt-stack && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- scripts/ .claude/templates/)
+      (cd ubtstack && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- scripts/ .claude/templates/)
     fi
     # Ensure target repo is a valid git clone
     if [ ! -d your-target-repo/.git ]; then
@@ -65,6 +65,9 @@ agent:
   max_concurrent_agents: 5
   max_turns: 30
 codex:
+  # Update --model and the trailing domain argument for your setup.
+  # model_reasoning_effort: xlow, low, medium, high, xhigh
+  # See: https://platform.openai.com/docs/guides/codex
   command: codex --config shell_environment_policy.inherit=all --config model_reasoning_effort=xhigh --model gpt-5.3-codex app-server
   approval_policy: never
   thread_sandbox: danger-full-access
@@ -82,11 +85,11 @@ Stay within scope, preserve existing architecture, and escalate ambiguity instea
 The workspace contains two repos side by side:
 
 - `your-target-repo/` — the implementation repo. All code changes, git operations, and PRs happen here. State files (manifests, review packets) also live here under `.claude/state/`.
-- `ubt-stack/` — the SDLC tooling repo. Contains scripts and templates only. Do NOT modify files in this repo.
+- `ubtstack/` — the SDLC tooling repo. Contains scripts and templates only. Do NOT modify files in this repo.
 
 All relative paths in ticket Allowed Paths are relative to `your-target-repo/`.
 Run build and test commands from inside `your-target-repo/`.
-Run `npx tsx ubt-stack/scripts/...` commands from the workspace root.
+Run `npx tsx ubtstack/scripts/...` commands from the workspace root.
 
 ## Phase 0 — Workspace verification (ALWAYS run first)
 
@@ -98,22 +101,22 @@ if [ ! -d your-target-repo ]; then
   git clone --depth 1 $TARGET_REPO_URL your-target-repo
 fi
 
-# Ensure ubt-stack is a valid git clone (not a partial/broken directory)
-if [ ! -d ubt-stack/.git ]; then
-  rm -rf ubt-stack
-  git clone --depth 1 $UBT_STACK_URL ubt-stack
-  (cd ubt-stack && npm install)
+# Ensure ubtstack is a valid git clone (not a partial/broken directory)
+if [ ! -d ubtstack/.git ]; then
+  rm -rf ubtstack
+  git clone --depth 1 $UBT_STACK_URL ubtstack
+  (cd ubtstack && npm install)
 fi
 
-# Pull latest tooling from ubt-stack (scripts and templates only)
-(cd ubt-stack && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- scripts/ .claude/templates/)
+# Pull latest tooling from ubtstack (scripts and templates only)
+(cd ubtstack && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- scripts/ .claude/templates/)
 
 # Pull latest state from target repo
 mkdir -p your-target-repo/.claude/state
 (cd your-target-repo && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- .claude/state/ 2>/dev/null || true)
 ```
 
-**Do NOT proceed to Phase 1 until `ubt-stack/scripts/validate-review-packet.ts` exists.** If it does not exist after running the above, transition the ticket to Rework with the error.
+**Do NOT proceed to Phase 1 until `ubtstack/scripts/validate-review-packet.ts` exists.** If it does not exist after running the above, transition the ticket to Rework with the error.
 
 ## Read the ticket first
 
@@ -184,7 +187,7 @@ If a ticket references a package name that isn't found, check for a workspace-sp
 Run the review-packet validator to check your work:
 
 ```bash
-npx tsx ubt-stack/scripts/validate-review-packet.ts \
+npx tsx ubtstack/scripts/validate-review-packet.ts \
   your-target-repo/.claude/state/planning-manifest.json \
   your-target-repo/.claude/state/review-packet.json
 ```
@@ -264,7 +267,7 @@ QA uses a stage-based model. Each stage (CI and CD) owns its tests and reports p
 Run the completion gate:
 
 ```bash
-npx tsx ubt-stack/scripts/symphony-complete-ticket.ts \
+npx tsx ubtstack/scripts/symphony-complete-ticket.ts \
   your-target-repo/.claude/state/planning-manifest.json \
   your-target-repo/.claude/state/review-packet.json \
   --ticket "$ISSUE_IDENTIFIER" \

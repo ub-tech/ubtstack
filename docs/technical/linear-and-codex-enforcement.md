@@ -7,10 +7,10 @@ Conductor is optional in this workflow. You do not need it to make the sandwich 
 Use Conductor only if you want a dedicated multi-agent workspace UI, parallel branch management, or a visual cockpit for Claude/Codex sessions.
 
 If Symphony already handles Linear intake, worktree creation, and Codex dispatch, the core flow works without Conductor:
-- Claude + ubt-stack for planning
+- Claude + ubtstack for planning
 - Symphony + Linear for ticketization and coordination
 - Codex for bounded implementation
-- Claude + ubt-stack for review, QA, and ship
+- Claude + ubtstack for review, QA, and ship
 
 ## Linear
 

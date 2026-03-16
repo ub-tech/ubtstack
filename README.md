@@ -69,7 +69,8 @@ mise trust && mise install && mise exec -- mix setup && mise exec -- mix build
 
 ```bash
 cd ../your-target-repo
-cp ../ubtstack/WORKFLOW.md .                # Copy and patch frontmatter
+cp ../ubtstack/WORKFLOW.md .                # Copy, then update with your project info
+# Edit WORKFLOW.md frontmatter: set project_slug, repo URLs, repo directory names, etc.
 
 # Symlink ubtstack skills into target repo
 mkdir -p .claude/skills
@@ -200,6 +201,8 @@ Domain-specific forks in progress:
 - **Blockchain / smart contract development** — custom CD staging with Anvil, Foundry test integration, trust-boundary review checks
 
 To contribute back to the core: open a PR against `main`. For domain-specific extensions, fork and maintain your own variant.
+
+Found a bug or have a feature request? [Open an issue](https://github.com/ub-tech/ubtstack/issues).
 
 ## Acknowledgments
 

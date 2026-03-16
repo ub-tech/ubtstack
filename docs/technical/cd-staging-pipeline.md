@@ -11,7 +11,7 @@ UBT-stack defines a generic CD staging protocol. Each target repo implements the
   → Target repo seeds database and bootstraps state
   → Target repo runs CD tests against staging
   → Target repo produces cd-results.json artifact
-  → Human syncs results to ubt-stack review packet
+  → Human syncs results to ubtstack review packet
   → /ship checks cd.status == "pass"
 ```
 
@@ -102,7 +102,7 @@ The CD pipeline must produce this artifact:
 | `tests[].status` | `"pass"` \| `"fail"` | Individual test result |
 | `tests[].details` | string (optional) | Failure description |
 
-## Syncing results to ubt-stack
+## Syncing results to ubtstack
 
 After the CD pipeline completes:
 

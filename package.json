@@ -1,7 +1,6 @@
 {
-  "name": "ubt-stack",
+  "name": "ubtstack",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "scripts": {
     "import-plan": "tsx scripts/import-plan-to-linear.ts",
