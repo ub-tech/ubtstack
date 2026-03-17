@@ -36,9 +36,9 @@ Your target repo owns the staging environment (`staging/docker-compose.yml`) and
 
 ```bash
 cd your-workspace
-git clone https://github.com/your-org/ubtstack.git
+git clone https://github.com/ub-tech/ubtstack.git
 git clone https://github.com/odysseus0/symphony.git
-git clone https://github.com/your-org/your-target-repo.git
+git clone https://github.com/your-org/your-target-repo.git   # your product repo
 ```
 
 ### 2. Install ubtstack dependencies (from ubtstack/)

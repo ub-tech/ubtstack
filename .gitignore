@@ -10,5 +10,10 @@ dist/
 # State (generated at runtime)
 .claude/state/
 
+# Local agent/runtime artifacts
+.agents/
+AGENTS.md
+.claude/settings.local.json
+
 # OS
 .DS_Store

@@ -67,7 +67,7 @@ It compares the manifest-derived requirements with the implementation evidence i
 Before Symphony marks a Linear issue complete, it should run:
 
 ```bash
-node scripts/symphony-complete-ticket.ts   .claude/state/planning-manifest.json   .claude/state/review-packet.json   --ticket ENG-201   --mode complete
+npx tsx scripts/symphony-complete-ticket.ts   .claude/state/planning-manifest.json   .claude/state/review-packet.json   --ticket ENG-201   --mode complete
 ```
 
 Behavior:

@@ -171,8 +171,6 @@ gh pr create --title "<type>: <summary>" --body "$(cat <<'EOF'
 
 ## Approval Required
 @$APPROVAL_REQUIRED_FROM — please review and approve.
-
-Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
