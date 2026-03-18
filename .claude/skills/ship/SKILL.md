@@ -37,6 +37,8 @@ You are running the `/ship` workflow. This assumes `/review` has already passed 
 
 Check if a staging environment is configured (env var `STAGING_URL`).
 
+**Per-ticket packet discovery:** Derive the ticket ID from the current branch name (e.g., `symphony/ENG-201` → `ENG-201`, `symphony/ENG-201-v2` → `ENG-201`). Try `.claude/state/review-packet-{TICKET_ID}.json` first. If it does not exist, fall back to `.claude/state/review-packet.json` for backward compatibility. Use the discovered path for all review packet references in this workflow.
+
 **If `STAGING_URL` is set:**
 1. Read the review packet and check `cd.status`:
    - If `cd.status == "pass"`: CD tests passed. Continue.
@@ -87,9 +89,14 @@ cargo clippy -- -D warnings 2>&1
 If the planning manifest and review packet exist, run the completion gate:
 
 ```bash
+# Derive ticket ID and discover review packet (per-ticket with legacy fallback)
+TICKET_ID=$(git branch --show-current | sed 's|^symphony/||' | sed 's|-v[0-9]*$||')
+REVIEW_PACKET=".claude/state/review-packet-${TICKET_ID}.json"
+[ ! -f "$REVIEW_PACKET" ] && REVIEW_PACKET=".claude/state/review-packet.json"
+
 npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/symphony-complete-ticket.ts \
   .claude/state/planning-manifest.json \
-  .claude/state/review-packet.json \
+  "$REVIEW_PACKET" \
   --ticket "$TICKET_ID" \
   --current-status "In Progress" \
   --mode complete

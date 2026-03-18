@@ -572,6 +572,9 @@ for (const task of manifest.business_tasks ?? []) {
   }
 }
 
+// IMPORTANT: This is the LAST write to the manifest. After commit+push to main,
+// the manifest is immutable. All subsequent state lives in per-ticket review packets
+// (review-packet-{TICKET_ID}.json), not in the manifest.
 if (manifestUpdated) {
   fs.writeFileSync(path.resolve(manifestPath), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   console.log(`\nManifest updated: ticket IDs now match Linear identifiers.`);

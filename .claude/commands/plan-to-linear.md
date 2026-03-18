@@ -99,4 +99,5 @@ Each business task must include:
 1. Write the manifest to `.claude/state/planning-manifest.json`.
 2. Dry-run Linear payloads: `npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/import-plan-to-linear.ts .claude/state/planning-manifest.json`
 3. Create issues in Linear: `npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/import-plan-to-linear.ts .claude/state/planning-manifest.json --execute --team ENG`
-4. Generate ticket-specific execution briefs for Codex using `npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/generate-codex-prompt.ts`.
+4. Commit and push the manifest to main. The manifest is now immutable — all subsequent ticket state lives in per-ticket review packets (`review-packet-{TICKET_ID}.json`), not in the manifest.
+5. Generate ticket-specific execution briefs for Codex using `npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/generate-codex-prompt.ts`.

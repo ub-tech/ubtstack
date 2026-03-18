@@ -56,10 +56,17 @@ Follow the output format specified in the checklist. Respect the suppressions �
 
 ## Step 4.5: Review-packet validation (if manifest exists)
 
-If `.claude/state/planning-manifest.json` and `.claude/state/review-packet.json` both exist, run the review-packet validator:
+**Per-ticket packet discovery:** Derive the ticket ID from the current branch name (e.g., `symphony/ENG-201` → `ENG-201`, `symphony/ENG-201-v2` → `ENG-201`). Try `.claude/state/review-packet-{TICKET_ID}.json` first. If it does not exist, fall back to `.claude/state/review-packet.json` for backward compatibility.
+
+If `.claude/state/planning-manifest.json` and a review packet (per-ticket or legacy) both exist, run the review-packet validator:
 
 ```bash
-npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/validate-review-packet.ts .claude/state/planning-manifest.json .claude/state/review-packet.json
+# Derive ticket ID from branch
+TICKET_ID=$(git branch --show-current | sed 's|^symphony/||' | sed 's|-v[0-9]*$||')
+REVIEW_PACKET=".claude/state/review-packet-${TICKET_ID}.json"
+[ ! -f "$REVIEW_PACKET" ] && REVIEW_PACKET=".claude/state/review-packet.json"
+
+npx tsx ${UBTSTACK_PATH:-../ubtstack}/scripts/validate-review-packet.ts .claude/state/planning-manifest.json "$REVIEW_PACKET"
 ```
 
 Include the validation results in the review output:

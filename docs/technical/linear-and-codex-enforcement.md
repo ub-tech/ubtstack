@@ -59,8 +59,8 @@ Use `scripts/validate-review-packet.ts` to compare the review packet with the pl
 
 Recommended sequence:
 1. Codex implements and emits a review packet
-2. Symphony stores the packet at `.claude/state/review-packet.json`
-3. Run `node scripts/validate-review-packet.ts .claude/state/planning-manifest.json .claude/state/review-packet.json`
+2. Symphony stores the packet at `.claude/state/review-packet-{TICKET_ID}.json` (per-ticket naming; falls back to `review-packet.json` for backward compatibility)
+3. Run `node scripts/validate-review-packet.ts .claude/state/planning-manifest.json .claude/state/review-packet-{TICKET_ID}.json`
 4. Only re-enter Claude `/review` if validation passes or the remaining gaps are intentionally accepted and documented
 
 
@@ -71,7 +71,7 @@ Ticket generation is not enough. Symphony should also enforce the gate at comple
 Recommended implementation:
 
 ```bash
-node scripts/symphony-complete-ticket.ts   .claude/state/planning-manifest.json   .claude/state/review-packet.json   --ticket ENG-201   --mode complete
+node scripts/symphony-complete-ticket.ts   .claude/state/planning-manifest.json   .claude/state/review-packet-ENG-201.json   --ticket ENG-201   --mode complete
 ```
 
 Expected behavior:

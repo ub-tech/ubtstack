@@ -43,7 +43,7 @@ hooks:
     # Pull latest state and set up branch
     cd your-target-repo
     git fetch origin
-    git checkout FETCH_HEAD -- .claude/state/ 2>/dev/null || true
+    git checkout FETCH_HEAD -- .claude/state/planning-manifest.json 2>/dev/null || true
     BASE="symphony/$ISSUE_ID"
     if ! git ls-remote --heads origin "$BASE" | grep -q "$BASE"; then
       BRANCH="$BASE"
@@ -113,7 +113,7 @@ fi
 
 # Pull latest state from target repo
 mkdir -p your-target-repo/.claude/state
-(cd your-target-repo && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- .claude/state/ 2>/dev/null || true)
+(cd your-target-repo && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- .claude/state/planning-manifest.json 2>/dev/null || true)
 ```
 
 **Do NOT proceed to Phase 1 until `ubtstack/scripts/validate-review-packet.ts` exists.** If it does not exist after running the above, transition the ticket to Rework with the error.
@@ -189,7 +189,7 @@ Run the review-packet validator to check your work:
 ```bash
 npx tsx ubtstack/scripts/validate-review-packet.ts \
   your-target-repo/.claude/state/planning-manifest.json \
-  your-target-repo/.claude/state/review-packet.json
+  your-target-repo/.claude/state/review-packet-$ISSUE_ID.json
 ```
 
 If validation fails, fix the gaps before proceeding.
@@ -214,7 +214,7 @@ Record the PR URL for the review packet.
 
 ### Phase 6 — Review packet
 
-Write `your-target-repo/.claude/state/review-packet.json` using this structure.
+Write `your-target-repo/.claude/state/review-packet-$ISSUE_ID.json` using this structure (where `$ISSUE_ID` is the Linear issue identifier, e.g. `ENG-201`).
 The `branch` and `pr` fields are **required** — the completion gate will reject packets without them.
 
 QA uses a stage-based model. Each stage (CI and CD) owns its tests and reports pass/fail independently:
@@ -269,7 +269,7 @@ Run the completion gate:
 ```bash
 npx tsx ubtstack/scripts/symphony-complete-ticket.ts \
   your-target-repo/.claude/state/planning-manifest.json \
-  your-target-repo/.claude/state/review-packet.json \
+  your-target-repo/.claude/state/review-packet-$ISSUE_IDENTIFIER.json \
   --ticket "$ISSUE_IDENTIFIER" \
   --current-status "In Progress" \
   --mode complete
