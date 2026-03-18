@@ -149,9 +149,22 @@ Symphony only claims issues that are in the **Todo** state within the configured
 
 Start your Claude instance from your target repo directory. ubtstack skills are invoked from there.
 
+### Discovery & pre-planning (optional)
+
 | Command | What it does |
 |---------|-------------|
-| `/kickoff` | Ingest PRD, spec, or brief |
+| `/write-a-prd` | Interactive PRD creation through interview and codebase exploration |
+| `/grill-me` | Adversarial interview to stress-test a plan or design |
+| `/triage` | Bug investigation → root cause analysis → Linear issue with TDD fix plan |
+| `/discover-architecture` | Codebase exploration for architectural improvement opportunities |
+| `/plan-refactor` | Detailed refactor plan with tiny commits → Linear issue |
+| `/tdd` | Interactive TDD session with red-green-refactor loop |
+
+### Core pipeline
+
+| Command | What it does |
+|---------|-------------|
+| `/kickoff` | Ingest PRD, spec, or brief — includes skill composition routing |
 | `/plan-ceo-review` | Product review — scope, constraints, non-goals |
 | `/plan-eng-review` | Architecture, test strategy, ticket breakdown |
 | `/plan-to-linear` | Create Linear issues from the planning manifest |
