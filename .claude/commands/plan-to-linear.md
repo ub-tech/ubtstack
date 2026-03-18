@@ -28,12 +28,38 @@ Create the directory first if it doesn't exist: `mkdir -p .claude/state`
   - test_commands
   - deliverables
   - escalation_rule
+  - slice_type
 - Preserve existing code context at both feature level and ticket level when relevant
 - Keep tickets narrow enough for Codex to implement safely
 - If a task spans multiple repos, split it unless cross-repo atomicity is unavoidable
 - Test requirements must match the changed surface, not a generic default
 - The manifest may leave `required_test_categories`, `conditional_test_categories`, and `qa_requirements` empty, but only if `change_classification` is complete enough for Symphony to compute them automatically
 - The manifest must be detailed enough for Symphony to render a Linear issue body without additional interpretation
+
+## Vertical-slice methodology
+
+Tickets must be tracer-bullet vertical slices, not horizontal layer slices. Each ticket cuts through all relevant layers end-to-end (schema, API, service logic, tests).
+
+### Slice classification
+
+Classify each ticket as:
+- **AFK** — can be implemented and merged by an agent without human interaction (prefer this)
+- **HITL** — requires a human decision or design review during implementation
+
+Mark HITL tickets in `implementation_guidance` with the specific decision needed.
+
+### Quiz step
+
+Before writing the manifest, present the proposed breakdown as a numbered list showing:
+- Title, Type (AFK/HITL), Blocked by, Acceptance criteria covered
+
+Ask the user:
+- Does the granularity feel right?
+- Are dependency relationships correct?
+- Should any tickets be merged or split?
+- Are the correct tickets marked AFK vs HITL?
+
+Iterate until approved, then write the manifest.
 
 ## Dependency graph (critical)
 
