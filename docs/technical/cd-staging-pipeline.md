@@ -110,8 +110,8 @@ After the CD pipeline completes:
 # Download artifact from target repo
 gh run download <run-id> -n cd-results -D /tmp/cd-results
 
-# Sync to review packet
-npx tsx scripts/sync-cd-results.ts /tmp/cd-results/cd-results.json .claude/state/review-packet.json
+# Sync to review packet (per-ticket naming; fall back to review-packet.json for legacy)
+npx tsx scripts/sync-cd-results.ts /tmp/cd-results/cd-results.json .claude/state/review-packet-${TICKET_ID}.json
 ```
 
 This sets `cd.status` and populates `cd.tests` in the review packet.
@@ -122,7 +122,7 @@ If `cd.status == "fail"`:
 
 ```bash
 npx tsx scripts/create-qa-tickets.ts \
-  .claude/state/review-packet.json \
+  .claude/state/review-packet-${TICKET_ID}.json \
   .claude/state/planning-manifest.json \
   --team ENG
 ```

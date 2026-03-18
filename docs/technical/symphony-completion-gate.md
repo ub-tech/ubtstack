@@ -19,7 +19,7 @@ Symphony must not transition a ticket to Done, Human Review, or any equivalent f
 ## Command
 
 ```bash
-node scripts/symphony-complete-ticket.ts   .claude/state/planning-manifest.json   .claude/state/review-packet.json   --ticket ENG-201   --mode complete
+node scripts/symphony-complete-ticket.ts   .claude/state/planning-manifest.json   .claude/state/review-packet-ENG-201.json   --ticket ENG-201   --mode complete
 ```
 
 ## What the gate checks
