@@ -34,9 +34,9 @@ This drop-in pack updates the planning, Linear handoff, and Codex execution laye
    - `npx tsx scripts/import-plan-to-linear.ts .claude/state/planning-manifest.json --execute --team <YOUR_TEAM_KEY>`
 6. Symphony picks up issues from `Todo` and dispatches Codex with:
    - `npx tsx scripts/generate-codex-prompt.ts .claude/state/planning-manifest.json ENG-101`
-7. After implementation, Codex emits `.claude/state/review-packet.json`.
+7. After implementation, Codex emits `.claude/state/review-packet-{TICKET_ID}.json` (per-ticket naming; falls back to `review-packet.json` for backward compatibility).
 8. Symphony validates via completion gate:
-   - `npx tsx scripts/symphony-complete-ticket.ts .claude/state/planning-manifest.json .claude/state/review-packet.json --ticket ENG-101 --mode complete`
+   - `npx tsx scripts/symphony-complete-ticket.ts .claude/state/planning-manifest.json .claude/state/review-packet-ENG-101.json --ticket ENG-101 --mode complete`
 9. On pass: ticket moves to `Human Review`. Route through `/review` (code review + QA gate) and `/ship`.
 10. On fail: ticket moves to `Rework`. Symphony re-dispatches Codex.
 
@@ -67,7 +67,7 @@ It compares the manifest-derived requirements with the implementation evidence i
 Before Symphony marks a Linear issue complete, it should run:
 
 ```bash
-npx tsx scripts/symphony-complete-ticket.ts   .claude/state/planning-manifest.json   .claude/state/review-packet.json   --ticket ENG-201   --mode complete
+npx tsx scripts/symphony-complete-ticket.ts   .claude/state/planning-manifest.json   .claude/state/review-packet-ENG-201.json   --ticket ENG-201   --mode complete
 ```
 
 Behavior:
@@ -76,7 +76,7 @@ Behavior:
 - emits machine-readable JSON for Symphony logs and a human-readable failure summary for operators
 
 Recommended Symphony workflow:
-1. Codex finishes implementation and emits `review-packet.json`
+1. Codex finishes implementation and emits `review-packet-{TICKET_ID}.json`
 2. Symphony runs `validate-review-packet.ts`
 3. Symphony runs `symphony-complete-ticket.ts --mode complete`
 4. Only if the exit code is 0 may Symphony transition the Linear ticket forward

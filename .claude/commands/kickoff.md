@@ -17,9 +17,18 @@ If both a PRD and architecture guidance are present:
 - treat architecture guidance as implementation context and constraint input
 - surface conflicts explicitly before planning proceeds
 
-## Phase 1 — CEO planning
+## Phase 1 — Mode selection + CEO planning
 
-Run `/plan-ceo-review` first.
+Before running the full CEO review, present the scope mode selection:
+
+AskUserQuestion: "How should we approach this plan's scope?"
+
+1. **SCOPE EXPANSION:** Dream big. Push scope up. Build the cathedral. (Recommended for greenfield features)
+2. **SELECTIVE EXPANSION:** Hold current scope as baseline, surface expansion opportunities one-by-one for cherry-picking. Neutral recommendations. (Recommended for feature enhancements / iterations)
+3. **HOLD SCOPE:** Accept the plan's scope. Maximum rigor. No expansions. (Recommended for bug fixes, hotfixes, refactors)
+4. **SCOPE REDUCTION:** The plan is overbuilt. Propose the minimal version. (Recommended when plan touches >15 files)
+
+After the user selects a mode, run `/plan-ceo-review` with the selected mode as context. The CEO review should skip re-asking at Step 0F.
 
 The CEO step may ingest:
 - PRD text

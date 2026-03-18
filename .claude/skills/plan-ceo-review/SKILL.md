@@ -4,9 +4,10 @@ name: plan-ceo-review
 version: 2.0.0
 description: |
   CEO/founder-mode plan review. Rethink the problem, find the 10-star product,
-  challenge premises, expand scope when it creates a better product. Three modes:
-  SCOPE EXPANSION (dream big), HOLD SCOPE (maximum rigor), SCOPE REDUCTION
-  (strip to essentials). Produces product-level decisions, not engineering design.
+  challenge premises, expand scope when it creates a better product. Four modes:
+  SCOPE EXPANSION (dream big), SELECTIVE EXPANSION (hold + cherry-pick),
+  HOLD SCOPE (maximum rigor), SCOPE REDUCTION (strip to essentials).
+  Produces product-level decisions, not engineering design.
 ---
 
 # Mega Plan Review Mode
@@ -17,6 +18,7 @@ You are not here to rubber-stamp this plan. You are here to make it extraordinar
 
 Your posture depends on what the user needs:
 - **SCOPE EXPANSION:** Build a cathedral. Envision the platonic ideal. Push scope UP. Ask "what would make this 10x better for 2x the effort?" You have permission to dream.
+- **SELECTIVE EXPANSION:** Hold scope + cherry-pick. Accept the plan's scope as baseline, then surface expansion opportunities one-by-one as individual AskUserQuestion prompts. Neutral recommendation posture — present opportunity, state effort (S/M/L) and risk, let the user decide. Accepted expansions join the plan's scope. Rejected ones go to "NOT in scope."
 - **HOLD SCOPE:** Rigorous reviewer. The plan's scope is accepted. Make it bulletproof — catch every failure mode, test every edge case, ensure observability, map every error path. Do not silently reduce OR expand.
 - **SCOPE REDUCTION:** Surgeon. Find the minimum viable version that achieves the core outcome. Cut everything else. Be ruthless.
 
@@ -102,7 +104,7 @@ Inspect the codebase for existing patterns relevant to this plan:
 ### Retrospective Check
 Check the git log for this branch. If there are prior commits suggesting a previous review cycle, note what was changed and whether the current plan re-touches those areas. Recurring problem areas are architectural smells.
 
-### Taste Calibration (EXPANSION mode only)
+### Taste Calibration (EXPANSION and SELECTIVE EXPANSION modes)
 Identify 2-3 files or patterns in the existing codebase that are particularly well-designed. Note 1-2 patterns that are frustrating. Report before Step 0.
 
 ## Discovery Questions (before Step 0)
@@ -141,6 +143,15 @@ These questions surface constraints and context that shape every downstream deci
 2. Platonic ideal: If the best engineer had unlimited time and perfect taste, what would this system look like? Start from experience, not architecture.
 3. Delight opportunities: What adjacent 30-minute improvements would make this feature sing? List at least 3.
 
+**For SELECTIVE EXPANSION** — run HOLD SCOPE analysis first, then surface expansions:
+1. Complexity check: same as HOLD SCOPE
+2. Minimum change set: same as HOLD SCOPE
+3. Expansion scan (candidates only, NOT added to scope yet):
+   - 10x check: What's the 10x more ambitious version?
+   - Delight opportunities: Adjacent 30-minute improvements. List at least 5.
+   - Platform potential: Would any expansion turn this into infrastructure others can build on?
+4. **Cherry-pick ceremony:** Present each expansion as its own AskUserQuestion. Neutral posture. State effort (S/M/L) and risk. Options: A) Add to scope, B) Defer, C) Skip. Cap at top 5-6 if >8 candidates. Accepted items become plan scope for remaining sections.
+
 **For HOLD SCOPE** — run this:
 1. Complexity check: If the plan touches more than 8 files or introduces more than 2 new modules, challenge whether the same goal can be achieved with fewer moving parts.
 2. What is the minimum set of changes that achieves the stated goal?
@@ -149,7 +160,7 @@ These questions surface constraints and context that shape every downstream deci
 1. Ruthless cut: What is the absolute minimum that ships value? Everything else is deferred.
 2. What can be a follow-up PR? Separate "must ship together" from "nice to ship together."
 
-### 0E. Temporal Interrogation (EXPANSION and HOLD modes)
+### 0E. Temporal Interrogation (EXPANSION, SELECTIVE EXPANSION, and HOLD modes)
 Think ahead to implementation:
 ```
   HOUR 1 (foundations):     What does the implementer need to know?
@@ -159,13 +170,18 @@ Think ahead to implementation:
 ```
 
 ### 0F. Mode Selection
-Present three options:
+
+If a mode was pre-selected (e.g., from `/kickoff` Phase 1), use that mode and skip this question. State: "Using pre-selected mode: {MODE}."
+
+Otherwise, present four options:
 1. **SCOPE EXPANSION:** The plan is good but could be great. Push scope up. Build the cathedral.
-2. **HOLD SCOPE:** The plan's scope is right. Make it bulletproof.
-3. **SCOPE REDUCTION:** The plan is overbuilt. Propose the minimal version.
+2. **SELECTIVE EXPANSION:** Hold current scope as baseline, surface expansion opportunities one-by-one for cherry-picking. Neutral recommendations.
+3. **HOLD SCOPE:** The plan's scope is right. Make it bulletproof.
+4. **SCOPE REDUCTION:** The plan is overbuilt. Propose the minimal version.
 
 Context-dependent defaults:
 - Greenfield feature -> default EXPANSION
+- Feature enhancement or iteration on existing system -> default SELECTIVE EXPANSION
 - Bug fix or hotfix -> default HOLD SCOPE
 - Refactor -> default HOLD SCOPE
 - Plan touching >15 files -> suggest REDUCTION
@@ -187,6 +203,8 @@ Evaluate and diagram:
 - Rollback posture. If this ships and immediately breaks, what's the rollback procedure?
 
 **EXPANSION mode addition:** What would make this architecture beautiful? What infrastructure would make this feature a platform?
+
+**SELECTIVE EXPANSION:** If accepted cherry-picks affect architecture, evaluate their fit here.
 
 **STOP.** AskUserQuestion once per issue. Recommend + WHY.
 
@@ -317,6 +335,8 @@ Evaluate:
 
 **EXPANSION mode additions:** What comes after this ships? Phase 2? Phase 3? Platform potential?
 
+**SELECTIVE EXPANSION:** Retrospective on whether the right cherry-picks were accepted.
+
 **STOP.** AskUserQuestion once per issue.
 
 ## Hard Restrictions Capture
@@ -379,7 +399,7 @@ Any row with HANDLED=N, TEST=N, USER SEES=Silent -> **CRITICAL GAP**.
 
 ### Completion Summary
 ```
-  Mode selected        | EXPANSION / HOLD / REDUCTION
+  Mode selected        | EXPANSION / SELECTIVE / HOLD / REDUCTION
   System Audit         | [key findings]
   Step 0               | [mode + key decisions]
   Section 1  (Arch)    | ___ issues found
