@@ -1,0 +1,340 @@
+{
+  "manifest_version": "2.0",
+  "feature_id": "PLAN-001",
+  "title": "Example feature",
+  "summary": "One-paragraph summary of the feature, grounded in the product brief context.",
+
+  "source": {
+    "origin_commands": ["/plan-ceo-review", "/plan-eng-review"],
+    "requested_by": "user",
+    "planning_inputs": {
+      "product_brief_ref": ".claude/product-brief.md",
+      "architecture_brief_ref": ".claude/architecture-brief.md",
+      "prd_refs": ["docs/functional/example-prd.md"],
+      "architecture_refs": ["docs/technical/example-architecture.md"],
+      "external_drivers": [
+        {
+          "type": "competitor_move",
+          "description": "Competitor X launched feature Y on 2026-03-01",
+          "reference": "https://example.com/competitor-announcement"
+        }
+      ],
+      "other_inputs": ["incident-123", "customer-feedback-batch-Q1"]
+    }
+  },
+
+  "product_context": {
+    "_comment": "Synopsis of the product in its entirety, drawn from the product brief. The user verifies this anchor statement before proceeding.",
+    "product_synopsis": "[Product Name] helps [target users from product brief] solve [problem statement] by [strategy summarized]. Success is measured by [PG-xxx metrics referenced]. This session addresses [TV-xxx: journey name], which advances [PG-xxx] by [specific mechanism].",
+    "product_synopsis_format": "[Product Name] helps [target users] solve [problem] by [strategy]. Success is measured by [PG-xxx metrics]. This session addresses [TV-xxx], which advances [PG-xxx] by [mechanism].",
+    "product_goals_referenced": [
+      {
+        "id": "PG-001",
+        "goal": "Reduce payment processing latency to <200ms p99",
+        "current_baseline": "450ms p99",
+        "target": "<200ms p99"
+      }
+    ],
+    "thin_verticals_addressed": [
+      {
+        "id": "TV-002",
+        "journey": "Payment retry after failure",
+        "product_goals_advanced": ["PG-001"],
+        "why_this_helps_users": "Users currently lose 15 minutes re-entering payment details after a timeout. This vertical eliminates that friction by enabling idempotent retry with preserved form state."
+      }
+    ]
+  },
+
+  "product_review": {
+    "_comment": "Session-specific product decisions. Anchored to the product synopsis above.",
+    "session_problem": "Specific problem this kickoff session addresses.",
+    "session_goal": "What outcome this session achieves.",
+    "target_user_impact": "How this feature helps the product brief's target users solve their stated problems — not just the feature's perceived problem in isolation.",
+    "session_goals": [
+      {
+        "id": "BIZ-001",
+        "description": "Users can retry a failed payment without re-entering card details",
+        "product_goals_advanced": ["PG-001"],
+        "type": "business"
+      }
+    ],
+    "session_non_goals": [
+      "NOT: Partial payment support — because TV-005 covers this separately",
+      "NOT: Admin dashboard for payment monitoring — deferred to TV-008"
+    ],
+    "constraints": [
+      {
+        "id": "C-001",
+        "type": "product",
+        "description": "Must support offline mode for mobile clients",
+        "source": "product_brief"
+      },
+      {
+        "id": "C-002",
+        "type": "engineering",
+        "description": "No new runtime dependencies without approval",
+        "source": "eng_review"
+      },
+      {
+        "id": "C-003",
+        "type": "security",
+        "description": "All PII must be encrypted at rest",
+        "source": "compliance"
+      },
+      {
+        "id": "C-004",
+        "type": "engineering",
+        "description": "No new unwrap() in non-test code",
+        "source": "eng_review"
+      },
+      {
+        "id": "C-005",
+        "type": "engineering",
+        "description": "p99 latency must stay under 50ms for affected paths",
+        "source": "eng_review"
+      }
+    ]
+  },
+
+  "engineering_review": {
+    "repos": ["repo-name"],
+    "architecture_notes": [
+      "PaymentGateway (PROC-002) requires idempotency key for retry safety",
+      "OrderStateMachine (COMP-002) needs a new pending_retry state"
+    ],
+    "interfaces_impacted": [
+      {
+        "id": "IF-001",
+        "description": "OrderService → PaymentGateway",
+        "change_type": "modified",
+        "change_detail": "New field: retry_count in OrderPaymentRequest",
+        "breaking": false
+      },
+      {
+        "id": "IF-003",
+        "description": "OrderService → InventoryService",
+        "change_type": "read_only",
+        "change_detail": "No changes — consumed but not modified",
+        "breaking": false
+      }
+    ],
+    "components_impacted": [
+      {
+        "id": "COMP-002",
+        "process": "PROC-001",
+        "name": "OrderStateMachine",
+        "change_detail": "Add pending_retry state and transition rules",
+        "existing_unit_tests": "tests/orders/state_test.rs (8 tests)",
+        "new_unit_tests_needed": "Retry transition tests (happy, boundary, invalid)"
+      }
+    ],
+    "risks": [
+      {
+        "id": "SR-001",
+        "type": "session",
+        "description": "Retry logic could charge customers twice if idempotency key is not correctly propagated",
+        "severity": "HIGH",
+        "mitigation": "Integration test for duplicate charge prevention",
+        "architecture_risks_impacted": ["AR-001"]
+      }
+    ],
+    "success_criteria": [
+      {
+        "id": "ENG-001",
+        "description": "PaymentRetry endpoint returns 200 with idempotency key on duplicate submission",
+        "product_goal": "PG-001",
+        "business_criterion": "BIZ-001",
+        "evidence_type": "test_pass"
+      },
+      {
+        "id": "ENG-002",
+        "description": "OrderStateMachine correctly transitions to pending_retry state on payment timeout",
+        "product_goal": "PG-001",
+        "business_criterion": null,
+        "evidence_type": "test_pass"
+      }
+    ]
+  },
+
+  "tickets": [
+    {
+      "id": "ENG-101",
+      "title": "Add pending_retry state to OrderStateMachine",
+      "repo": "repo-name",
+      "type": "feature",
+      "priority": "high",
+      "depends_on": [],
+      "labels": ["team:eng", "service:PROC-001", "domain:payments"],
+      "thin_vertical": "TV-002",
+      "time_estimate_hours": 4,
+      "services_impacted": ["PROC-001"],
+      "slice_type": "AFK",
+
+      "scope": [
+        "Add pending_retry state to OrderStateMachine (COMP-002)",
+        "Add transition rules: payment_timeout → pending_retry → retrying",
+        "Add validation: prevent retry on already-completed orders"
+      ],
+      "implementation_guidance": [
+        "Reuse existing state transition pattern in COMP-002",
+        "Do not modify IF-001 in this ticket — that is ENG-102"
+      ],
+
+      "acceptance_criteria": [
+        {
+          "id": "ENG-001",
+          "description": "OrderStateMachine transitions to pending_retry on payment timeout event",
+          "evidence_type": "test_pass"
+        },
+        {
+          "id": "ENG-002",
+          "description": "Transition from completed → pending_retry is rejected with InvalidTransition error",
+          "evidence_type": "test_pass"
+        }
+      ],
+
+      "allowed_paths": [
+        "src/orders/state.rs",
+        "src/orders/state/**",
+        "tests/orders/state_test.rs",
+        "tests/orders/**"
+      ],
+      "touched_components": ["COMP-002"],
+
+      "change_classification": {
+        "domain_logic_changed": true,
+        "module_boundary_changed": false,
+        "api_contract_changed": false,
+        "user_workflow_changed": false,
+        "throughput_or_latency_path_changed": false,
+        "trust_boundary_or_external_input_changed": false,
+        "bug_fix_or_regression_risk": false,
+        "operational_behavior_changed": false
+      },
+
+      "test_traceability_matrix": [
+        {
+          "trace_id": "TM-ENG-101-01",
+          "product_goal": "PG-001",
+          "business_criterion": "BIZ-001",
+          "eng_criterion": "ENG-001",
+          "test_type": "unit",
+          "interfaces_tested": [],
+          "test_file": "tests/orders/state_test.rs",
+          "extra_testing_notes": "Test the payment_timeout → pending_retry transition",
+          "stage": "CI",
+          "staging_requirements": null,
+          "success_criteria": "State machine transitions to pending_retry when payment_timeout event is received in payment_pending state",
+          "status": "NOT_RUN",
+          "evidence": null,
+          "staging_env_version": null,
+          "git_ref": null,
+          "version_tag": null,
+          "timestamp": null,
+          "operator": null,
+          "operator_signature": null,
+          "comments": null
+        },
+        {
+          "trace_id": "TM-ENG-101-02",
+          "product_goal": "PG-001",
+          "business_criterion": null,
+          "eng_criterion": "ENG-002",
+          "test_type": "unit",
+          "interfaces_tested": [],
+          "test_file": "tests/orders/state_test.rs",
+          "extra_testing_notes": "Test that completed → pending_retry is rejected",
+          "stage": "CI",
+          "staging_requirements": null,
+          "success_criteria": "InvalidTransition error returned when attempting pending_retry from completed state",
+          "status": "NOT_RUN",
+          "evidence": null,
+          "staging_env_version": null,
+          "git_ref": null,
+          "version_tag": null,
+          "timestamp": null,
+          "operator": null,
+          "operator_signature": null,
+          "comments": null
+        },
+        {
+          "trace_id": "TM-ENG-101-03",
+          "product_goal": "PG-001",
+          "business_criterion": "BIZ-001",
+          "eng_criterion": "ENG-001",
+          "test_type": "regression",
+          "interfaces_tested": [],
+          "test_file": "tests/orders/state_test.rs",
+          "extra_testing_notes": "Verify existing state transitions are not broken by new state addition",
+          "stage": "CI",
+          "staging_requirements": null,
+          "success_criteria": "All pre-existing state transition tests continue to pass",
+          "status": "NOT_RUN",
+          "evidence": null,
+          "staging_env_version": null,
+          "git_ref": null,
+          "version_tag": null,
+          "timestamp": null,
+          "operator": null,
+          "operator_signature": null,
+          "comments": null
+        }
+      ],
+
+      "test_commands": [
+        "cargo test --package omega-orders -- state_test"
+      ],
+
+      "deliverables": [
+        {
+          "description": "pending_retry state and transition rules in OrderStateMachine",
+          "eng_criterion": "ENG-001",
+          "evidence_type": "code_change"
+        },
+        {
+          "description": "Unit tests for new state transitions",
+          "eng_criterion": "ENG-001",
+          "evidence_type": "test_pass"
+        }
+      ],
+
+      "existing_code_context": {
+        "components": ["COMP-002"],
+        "current_tests": ["tests/orders/state_test.rs"],
+        "interfaces": [],
+        "notes": ["Existing state machine uses enum + match pattern — extend, do not replace"]
+      },
+
+      "escalation_rule": "If state transition semantics are ambiguous (e.g., what happens on retry of a refunded order), stop and return to planning.",
+
+      "_comment": "TV = ticket = atomic unit. No sub-tickets. RED/GREEN/REFACTOR is execution detail within the ticket, not separate planning artifacts. If a TV has multiple behaviors, split it into separate TVs."
+    }
+  ],
+
+  "review_requirements": {
+    "claude_review_required": true,
+    "security_review_required": false,
+    "performance_review_required": false
+  },
+
+  "business_tasks": [
+    {
+      "id": "BIZ-101",
+      "title": "Research competitor retry UX patterns",
+      "team": "BIZ",
+      "type": "research",
+      "priority": "medium",
+      "depends_on": [],
+      "labels": ["team:biz", "domain:payments"],
+      "description": "Survey top 5 competitors' payment retry UX to inform TV-002 design decisions.",
+      "acceptance_criteria": [
+        "Documented comparison of retry flows across 5 competitors"
+      ],
+      "deliverables": [
+        "Competitive analysis document"
+      ],
+      "owner": "product-team",
+      "due_date": null
+    }
+  ]
+}

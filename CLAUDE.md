@@ -6,7 +6,7 @@ This repo supports a sandwich workflow:
 1. Claude + ubtstack for planning and design
 2. Symphony + Linear for ticketization and coordination
 3. Codex for bounded implementation
-4. Claude + ubtstack for review (includes QA), CD/staging, and ship
+4. Claude + ubtstack for `/ship` (structural review + CI validation + PR), then `/deploy` (tag-based CD)
 
 ## Planning inputs
 
@@ -94,12 +94,12 @@ Examples:
 
 QA uses a stage-based model. Each stage owns its tests and reports pass/fail independently:
 
-- **CI stage** (`ci.status`): build, lint, unit, integration, smoke — verified during agent execution and `/review`
-- **CD stage** (`cd.status`): staging smoke, system/e2e, regression, security, fuzz, load, stress, functional API — verified during the CD/staging pipeline between `/review` and `/ship`
-- Rollback readiness — documented by agent, verified during `/review`
-- Monitoring and alert readiness for operationally significant changes — documented by agent, verified during `/review`
+- **CI stage** (`ci.status`): build, lint, unit, integration, smoke — verified during TDD execution and `/ship`
+- **CD stage** (`cd.status`): staging smoke, system/e2e, regression, security, fuzz, load, stress, functional API — verified during `/deploy` (tag-based, batch across all tickets in a release)
+- Rollback readiness — documented by agent, verified during `/ship`
+- Monitoring and alert readiness for operationally significant changes — documented by agent, verified during `/ship`
 
-CI tests pass/fail at CI time. CD tests pass/fail at CD time. There is no “deferred” concept — each stage runs its own tests when it executes.
+CI tests pass/fail at CI time (per-ticket, during `/ship`). CD tests pass/fail at deploy time (per-tag, during `/deploy`). There is no “deferred” concept — each stage runs its own tests when it executes.
 
 ### Review rule
 
@@ -107,7 +107,7 @@ A PR is incomplete if it proves only the happy path while leaving boundary, erro
 
 ### Review-packet validation
 
-During `/review`, validate the review packet against the planning manifest.
+During `/ship`, validate the review packet against the planning manifest.
 A PR is not ready to ship if required test categories or QA requirements are missing from the implementation evidence.
 
 
@@ -123,15 +123,13 @@ The completion gate validates:
 - test commands were run
 - baseline review checklist items are present
 
-If the completion gate fails, Symphony must keep the ticket blocked and route the result back into Claude `/review` or planning.
-
-Note: `/qa` has been merged into `/review`. Run `/review` for both code review and QA gate validation.
+If the completion gate fails, Symphony must keep the ticket blocked and route the result back into Claude `/ship` or planning.
 
 
 ## Linear Status Contract
-Symphony must obey the Linear status-transition contract in `.claude/templates/linear-status-contract.template.json`.
+Symphony must obey the Linear status-transition contract defined in CLAUDE.md and in each Linear issue body (see `linear-issue-body-v2.template.md`).
 It may only move tickets along allowed edges, and it must use `scripts/resolve-linear-transition.ts` before any automatic status update.
-Validator failure routes to `Rework`; validator pass routes to `Human Review`. Only Claude review can move a ticket from `Human Review` to `Merging`. Only a successful merge can move a ticket to `Done`.
+Validator failure routes to `Rework`; validator pass routes to `Human Review`. Only Claude `/ship` can move a ticket from `Human Review` to `Merging`. Only a successful merge can move a ticket to `Done`.
 
 Status names are aligned with Symphony (odysseus0/symphony) conventions:
 - `Todo` (Symphony active state — dispatch eligible)
@@ -212,8 +210,9 @@ The final approval gate is human. The approver is configured via `APPROVAL_REQUI
 
 ```
 Spec → CEO Review → Eng Review → Tickets (Linear)
-  → Agent Implementation (Codex/Symphony)
-  → CI → Completion Gate → Claude Review + QA
-  → CD to Staging → Ship (PR) → Human Approval → Merge
-  → Reflection
+  → Agent Implementation (TDD with CI evidence)
+  → /ship (structural review + CI validation + PR)
+  → Human Approval → Merge → Tag
+  → /deploy (CD tests for all tickets in tag)
+  → Deploy → Reflection
 ```

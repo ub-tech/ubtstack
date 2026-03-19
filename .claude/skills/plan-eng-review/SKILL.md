@@ -1,15 +1,17 @@
-
 ---
 name: plan-eng-review
-version: 2.0.0
+version: 4.0.0
 description: |
-  Eng manager-mode plan review. Lock in the execution plan — architecture,
-  data flow, diagrams, edge cases, test coverage, performance. Walks through
-  issues interactively with opinionated recommendations. Produces engineering
-  design that is detailed enough for ticket generation and Codex execution.
+  Eng manager-mode plan review with mandatory interrogation-first pattern.
+  Three phases: (0) Brief Enforcement, (1) Interrogation (delegates to grill-me
+  protocol v3.0.0), (2) Analysis, (3) Approval Gate. Three scope modes: SCOPE
+  REDUCTION, BIG CHANGE, SMALL CHANGE. Produces engineering design detailed enough
+  for ticket generation, Codex execution, and test traceability matrix population.
+dependencies:
+  - grill-me@3.0.0  # Phase 1 interrogation mechanics
 ---
 
-# Plan Review Mode
+# Engineering Plan Review — v4.0.0
 
 Review this plan thoroughly before making any code changes. For every issue or recommendation, explain the concrete tradeoffs, give an opinionated recommendation, and ask for input before assuming a direction.
 
@@ -22,10 +24,6 @@ Before starting, check `.env` for codebase context paths and scan them:
 
 Cross-reference discovered docs with the CEO review output. Flag any architectural constraints or existing specs that the plan must comply with.
 
-## Priority hierarchy
-
-If running low on context: Step 0 > Test diagram > Opinionated recommendations > Everything else. Never skip Step 0 or the test diagram.
-
 ## Engineering preferences (guide your recommendations)
 
 - DRY is important — flag repetition aggressively
@@ -36,33 +34,138 @@ If running low on context: Step 0 > Test diagram > Opinionated recommendations >
 - Minimal diff: achieve the goal with the fewest new abstractions and files touched
 - ASCII diagrams for any non-trivial data flow, state machine, or processing pipeline
 
-## Discovery Questions (before Step 0)
+## Priority hierarchy
 
-Probe the human for engineering context not captured in the plan. Ask as individual AskUserQuestion calls. Skip any already answered.
+Phase 0 (brief enforcement) > Phase 1 (interrogation, min 10 questions) >
+Scope decision > Test traceability matrix > Opinionated recommendations >
+Phase 3 (approval gate) > Everything else.
+Never skip Phase 0, Phase 1, or Phase 3.
 
-1. **What's the scariest part?** Which area of this change are you least confident about? Where do you expect surprises?
-2. **What's the operational context?** How is this deployed? Who's on-call? What monitoring exists today?
-3. **Are there hard restrictions from the product review?** (If CEO review captured `hard_restrictions`, read them here and confirm they're still accurate. If not, ask.)
-4. **What existing code is fragile?** Which modules are known to be brittle, poorly tested, or poorly understood?
-5. **What's the rollback story?** If this breaks in production, what's the recovery path?
+---
 
-Capture answers as context for the engineering review.
+# PHASE 0: Brief Enforcement (HARD GATE)
 
-## BEFORE YOU START
+Before doing anything else, verify that both anchor documents exist.
 
-### Step 0: Scope Challenge
+### Product Brief Check
+```bash
+cat .claude/product-brief.md 2>/dev/null | head -5
+```
 
-Before reviewing anything, answer these questions:
-1. **What existing code already partially or fully solves each sub-problem?** Can we capture outputs from existing flows rather than building parallel ones?
-2. **What is the minimum set of changes that achieves the stated goal?** Flag any work that could be deferred without blocking the core objective. Be ruthless about scope creep.
-3. **Complexity check:** If the plan touches more than 8 files or introduces more than 2 new modules/services, treat that as a smell and challenge whether the same goal can be achieved with fewer moving parts.
+If the product brief does not exist or is empty:
+- **STOP.** Tell the user: **"No product brief found at `.claude/product-brief.md`. This is required to ground the engineering review in product context. Run `/create-product-brief` first."**
+- Do NOT proceed. Do NOT attempt to review without it.
 
-Then ask if the user wants one of three options:
+### Architecture Brief Check
+```bash
+cat .claude/architecture-brief.md 2>/dev/null | head -5
+```
+
+If the architecture brief does not exist or is empty:
+- **STOP.** Tell the user: **"No architecture brief found at `.claude/architecture-brief.md`. This is required for engineering review. Run `/create-architecture-brief` first."**
+- Do NOT proceed. Do NOT attempt to review without it.
+
+### Product Anchor Statement
+
+Read `.claude/product-brief.md` in full. Generate a product anchor statement:
+
+**Format:** "[Product Name] helps [target users] solve [problem] by [strategy]. Success measured by [PG-xxx]. This session addresses [TV-xxx]."
+
+### Architecture Anchor Statement
+
+Read `.claude/architecture-brief.md` in full. Generate an architecture anchor statement:
+
+**Format:** "System: [N] processes ([PROC-xxx]) connected by [M] interfaces ([IF-xxx]). Security-critical: [list]. Architecture risks: [AR-xxx]."
+
+Present both anchors to the user: **"Here are the product and architecture anchors for this engineering review. Please confirm both before we proceed:"**
+
+Display both anchor statements. **STOP.** Wait for confirmation. If the user corrects anything, update and re-confirm. Do NOT proceed until the user confirms both.
+
+---
+
+# PHASE 1: Interrogation
+
+**This phase delegates to the `grill-me` protocol (v3.0.0) in embedded mode.** Eng review owns the question pool, selection criteria, and pre-interrogation audit. Grill-me owns the asking cadence, push-back decisions, ledger tracking, and exit criteria.
+
+## Pre-Interrogation System Audit (eng review owns this)
+
+Before invoking grill-me, run a system audit to inform question selection:
+
+```bash
+git log --oneline -30
+git diff main --stat
+git stash list
+```
+
+Inspect the codebase for:
+- Current system state and what's in flight
+- Existing test coverage for affected areas
+- TODO/FIXME comments in files this plan touches
+- Recent PRs or changes that might conflict
+
+## Engineering Question Pool
+
+| # | Question | Source |
+|---|----------|--------|
+| Q1 | **Existing Code Leverage** — What modules/functions can be reused? Are we building parallel to existing flows? | Step 0 q1 |
+| Q2 | **Scariest Part** — Which area are you least confident about? Where do you expect surprises? | Discovery Q1 |
+| Q3 | **Architecture Brief Alignment** — Which PROC-xxx and IF-xxx does this touch? Does it break any ICD contracts? | architecture-brief |
+| Q4 | **Minimum Change Set** — What is the absolute minimum that achieves the goal? What can be deferred? | Step 0 q2 |
+| Q5 | **Hard Restrictions from CEO** — What restrictions came from the product review? Still accurate? Additional ones? | Discovery Q3 |
+| Q6 | **Fragile Code Zones** — Which modules in the affected area are brittle, poorly tested, or poorly understood? | Discovery Q4 |
+| Q7 | **Rollback Story** — If this breaks in production, what are the exact recovery steps? Feature flag, DB rollback, revert? | Discovery Q5 |
+| Q8 | **Operational Context** — How is this deployed? Who is on-call? What monitoring exists today? | Discovery Q2 |
+| Q9 | **Interface Impact** — For each IF-xxx modified: backward-compatible? Migration strategy? Who breaks if it changes? | architecture-brief |
+| Q10 | **Test Gap Analysis** — What is the current test coverage for affected components? What categories exist vs. needed? | New |
+| Q11 | **Complexity Check** — Can the same goal be achieved with fewer files/modules? What's the simplest architecture? | Step 0 q3 |
+| Q12 | **Scale and Load** — What breaks at 10x? At 100x? Single point of failure? | CEO Section 1 |
+| Q13 | **Concurrency and State** — Shared mutable state? Concurrent access? Race conditions? | New |
+| Q14 | **Security Surface** — Trust boundary, crypto, auth, or fund-handling touched? Which PROC-xxx/IF-xxx? | CLAUDE.md security policy |
+| Q15 | **Migration Safety** — Schema/data migration backward-compatible? Zero-downtime? What about in-flight requests? | New |
+
+## Grill-Me Invocation (Embedded Mode)
+
+Execute Phase 1 interrogation using the grill-me protocol in embedded mode. Provide it with the question pool above, mark Q1-Q5 as mandatory, require minimum 10 questions, and pass the system audit findings as selection context. Q1, Q6, and Q10 are codebase-answerable — grill-me should explore the codebase for those before asking.
+
+### Question Selection Guidance
+
+After mandatory Q1-Q5, select remaining questions based on:
+- **Poor test coverage found in audit** → Prioritize Q10, Q6
+- **Schema or data migration involved** → Prioritize Q15, Q9
+- **Cross-repo changes** → Prioritize Q9, Q8
+- **CEO review flagged security concerns** → Prioritize Q14, Q13
+- **Plan touches >10 files** → Prioritize Q11, Q4
+- **Async/concurrent code involved** → Prioritize Q13, Q12
+- **Prior review cycles or recurring problem areas** → Prioritize Q6, Q7
+- **New external integrations** → Prioritize Q8, Q12, Q7
+
+### Post-Interrogation
+
+Grill-me returns the completed ledger in its canonical format. Present it to the user:
+
+```
+# Engineering Interrogation Ledger
+[ledger in grill-me canonical format]
+```
+
+**STOP.** The grill-me protocol handles the "Any corrections?" prompt. Do NOT proceed to Phase 2 until the user confirms the ledger.
+
+---
+
+# PHASE 2: Analysis
+
+All analysis in this phase is informed by the interrogation ledger from Phase 1. Reference specific Q-answers when they shape decisions.
+
+## Scope Decision
+
+Ask if the user wants one of three options:
 1. **SCOPE REDUCTION:** The plan is overbuilt. Propose a minimal version, then review that.
 2. **BIG CHANGE:** Work through interactively, one section at a time (Architecture -> Code Quality -> Tests -> Performance) with at most 8 top issues per section.
-3. **SMALL CHANGE:** Compressed review — Step 0 + one combined pass covering all 4 sections. For each section, pick the single most important issue. Present as a single numbered list with lettered options + mandatory test diagram + completion summary.
+3. **SMALL CHANGE:** Compressed review — one combined pass covering all 4 sections. For each section, pick the single most important issue. Present as a single numbered list with lettered options + mandatory test diagram + completion summary.
 
-**Critical: If the user does not select SCOPE REDUCTION, respect that decision fully.** Your job becomes making the plan succeed, not continuing to lobby for a smaller plan. Raise scope concerns once in Step 0 — after that, commit to the chosen scope.
+**Critical: If the user does not select SCOPE REDUCTION, respect that decision fully.** Your job becomes making the plan succeed, not continuing to lobby for a smaller plan. Raise scope concerns once — after that, commit to the chosen scope.
+
+**STOP.** AskUserQuestion. Recommend + WHY. Do NOT proceed until user responds.
 
 ## Review Sections (after scope is agreed)
 
@@ -145,41 +248,111 @@ Use AskUserQuestion. Prompt with examples:
 - Migration constraints (e.g., "must be backward-compatible with existing schema")
 - Concurrency constraints (e.g., "no new tokio::spawn without cancellation safety")
 
-All restrictions are written into `hard_restrictions` in the planning manifest. They flow into every ticket and are visible to Codex agents in the Linear issue body. The completion gate checks that changed files comply with restrictions.
+All restrictions are written into `constraints` in the planning manifest. They flow into every ticket and are visible to Codex agents in the Linear issue body. The completion gate checks compliance.
+
+## Existing code inspection
+
+Before finalizing the plan, inspect:
+- Current module structure in affected repos
+- Current interfaces and contracts
+- Current test coverage for affected areas
+- Recent PRs or changes that might conflict
+
+Document what was inspected under `existing_code_context` at both the feature level and per-ticket level.
+
+---
+
+# PHASE 3: Approval Gate
+
+Present the complete output artifact (all required outputs below) to the user.
+
+**STOP.** AskUserQuestion with 4 options:
+
+- **A) Approve** — Output becomes the locked engineering artifact. Proceed to `/plan-to-linear`.
+- **B) Approve with modifications** — Specify which sections to revise. Revise those sections, then re-present for approval.
+- **C) Reject — revisit interrogation** — Return to Phase 1 for specific questions that need re-examination. Re-invokes grill-me in embedded mode with targeted questions.
+- **D) Reject — escalate to CEO review** — Fundamental product/scope issue discovered during engineering review. Return to `/plan-ceo-review`.
+
+**Do NOT hand off to `/plan-to-linear` until the user selects option A.**
+
+---
 
 ## Required engineering outputs
 
-### 1. Service boundaries
+### 1. Interrogation Ledger
+Complete ledger from Phase 1 in grill-me canonical format showing RESOLVED / PENDING / SKIPPED for each question asked.
+
+### 2. Service boundaries
 - Which repos and modules are affected
 - Whether cross-repo changes are needed (and if so, ordering)
 
-### 2. Interface changes
+### 3. Interface changes
 - New or modified APIs, RPCs, events, or schemas
 - Breaking vs. non-breaking changes
 - Migration strategy for breaking changes
 
-### 3. Dependency graph
+### 4. Dependency graph
 - Ticket ordering and blocking relationships
 - External dependencies (services, libraries, infrastructure)
 
-### 4. Implementation approach
+### 5. Implementation approach
 - Per-ticket scope, guidance, and allowed paths
 - Existing code to inspect before editing
 - Patterns to extend vs. patterns to replace
 
-### 5. Test strategy
-- Change classification per ticket (8 boolean flags)
-- Required and conditional test categories derived from classification
-- Test commands per ticket
-- Existing tests to preserve or extend
+### 6. Test strategy and traceability matrix
 
-### 6. QA and operational gates
+#### Change classification per ticket
+Set 8 booleans explicitly:
+- `domain_logic_changed`
+- `module_boundary_changed`
+- `api_contract_changed`
+- `user_workflow_changed`
+- `throughput_or_latency_path_changed`
+- `trust_boundary_or_external_input_changed`
+- `bug_fix_or_regression_risk`
+- `operational_behavior_changed`
+
+#### Test traceability matrix (per TV ticket)
+
+For each ticket, produce explicit `test_traceability_matrix` rows. Every ENG-xxx acceptance criterion must have at least one TM-xxx row. Each row:
+
+```
+trace_id           — TM-{TICKET_ID}-{NN} (globally unique)
+product_goal       — PG-xxx (required — traces back to product brief)
+business_criterion — BIZ-xxx or null
+eng_criterion      — ENG-xxx (required — traces back to acceptance criteria)
+test_type          — unit|integration|system|smoke|security|load|stress|fuzz|regression|error-path-resilience|functional-api
+interfaces_tested  — [IF-xxx] or [] (populated for integration tests)
+test_file          — planned test file path
+stage              — CI or CD
+version_tag        — null (populated during /deploy for CD-stage tests)
+success_criteria   — what "pass" means for this specific test
+```
+
+Use the change classification to determine required test types:
+- `domain_logic_changed` → unit tests
+- `module_boundary_changed` → integration tests
+- `api_contract_changed` → functional-api + regression tests
+- `user_workflow_changed` → system tests
+- `throughput_or_latency_path_changed` → load tests (conditional: stress)
+- `trust_boundary_or_external_input_changed` → security + error-path-resilience tests (conditional: fuzz)
+- `bug_fix_or_regression_risk` → regression tests
+- `operational_behavior_changed` → CD-stage: rollback plan + monitoring verification
+
+#### Test commands per ticket
+Explicit commands that agents run (e.g., `cargo test --package omega-orders -- state_test`).
+
+#### Existing tests to preserve or extend
+List tests that exist today and must not break.
+
+### 7. QA and operational gates
 - Staging validation requirements
 - Rollback plan requirements (if operational behavior changes)
 - Monitoring/alert requirements (if applicable)
 - Release sequencing constraints
 
-### 7. Risks and escalation
+### 8. Risks and escalation
 - Known risks to manage during implementation
 - Escalation rule per ticket (when to stop and return to planning)
 
@@ -199,25 +372,19 @@ Any failure mode with no test AND no error handling AND would be silent -> **CRI
 
 ### Completion summary
 ```
-  Step 0: Scope Challenge (user chose: ___)
-  Architecture Review: ___ issues found
-  Code Quality Review: ___ issues found
-  Test Review: diagram produced, ___ gaps identified
-  Performance Review: ___ issues found
-  NOT in scope: written
-  What already exists: written
-  Failure modes: ___ critical gaps flagged
+  Phase 0              | Brief enforcement: PASSED
+  Phase 1              | Grill-me embedded: ___ questions asked, ___ resolved, ___ pending
+  Scope Decision       | SCOPE REDUCTION / BIG CHANGE / SMALL CHANGE
+  Architecture Review  | ___ issues found
+  Code Quality Review  | ___ issues found
+  Test Review          | diagram produced, ___ gaps identified
+  Performance Review   | ___ issues found
+  Test Traceability    | ___ TM-xxx rows across ___ tickets
+  NOT in scope         | written
+  What already exists  | written
+  Failure modes        | ___ critical gaps flagged
+  Phase 3              | APPROVED / APPROVED WITH MODIFICATIONS / REJECTED
 ```
-
-## Existing code inspection
-
-Before finalizing the plan, inspect:
-- Current module structure in affected repos
-- Current interfaces and contracts
-- Current test coverage for affected areas
-- Recent PRs or changes that might conflict
-
-Document what was inspected under `existing_code_context` at both the feature level and per-ticket level.
 
 ## CRITICAL RULE — How to ask questions
 
@@ -227,10 +394,13 @@ Every AskUserQuestion MUST: (1) present 2-3 concrete lettered options, (2) state
 
 **Escape hatch:** If a section has no issues, say so and move on. If an issue has an obvious fix, state what you'll do and move on.
 
+**Phase 1 exception:** Interrogation questions follow grill-me protocol rules — they may be open-ended to elicit the user's reasoning. The lettered-options rule applies to Phase 2 analysis questions, not Phase 1 interrogation.
+
 ## Hand-off rule
 
 The output of this command feeds directly into `/plan-to-linear`. Ensure:
 - Every ticket has enough detail for Symphony to render a Linear issue body without additional interpretation
 - Change classification is complete enough for automatic test/QA gate derivation
+- Test traceability matrix is populated — every ENG-xxx has at least one TM-xxx row
 - Allowed paths are explicit, not inferred
 - Acceptance criteria are observable and testable
