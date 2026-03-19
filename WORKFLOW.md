@@ -143,7 +143,31 @@ All code changes go in `your-target-repo/`.
 1. Extend current patterns where reasonable; do not rewrite unrelated architecture
 2. Satisfy all acceptance criteria listed in the ticket
 
+#### TDD methodology
+
+Use vertical slicing (red-green-refactor), not horizontal slicing:
+
+WRONG (horizontal): write all tests → write all code
+RIGHT (vertical):   test1→impl1 → test2→impl2 → test3→impl3
+
+For each behavior in the acceptance criteria:
+1. RED: Write one test that describes expected behavior through the public interface. Verify it fails.
+2. GREEN: Write minimal code to make that test pass.
+3. Repeat for the next behavior.
+
+After all behaviors pass, run a refactor pass: extract duplication, deepen shallow modules, remove dead code.
+
+Rules:
+- Tests verify behavior through public interfaces, not implementation details
+- One test at a time — do not write all tests first
+- Mock only at system boundaries (external APIs, databases, time) — not internal collaborators
+- Never refactor while RED — get to GREEN first
+
 ### Phase 3 — Test
+
+Tests written during Phase 2 (TDD loop) count toward required test categories.
+Phase 3 verifies completeness — if TDD covered all required categories, this
+phase confirms it. If gaps remain, add the missing categories here.
 
 Generate and run all required test categories from the ticket. Agents run **CI-stage tests only** (fast, deterministic). CD-stage tests run in the staging CD pipeline after `/review`.
 

@@ -31,15 +31,42 @@ type ChangeClassification = {
   operational_behavior_changed?: boolean;
 };
 
+type AcceptanceCriterion = {
+  id: string;
+  description: string;
+  evidence_type?: string;
+};
+
+type TraceabilityRow = {
+  trace_id: string;
+  product_goal?: string;
+  business_criterion?: string | null;
+  eng_criterion: string;
+  test_type: string;
+  interfaces_tested?: string[];
+  test_file?: string;
+  extra_testing_notes?: string | null;
+  stage: string;
+  staging_requirements?: string | null;
+  success_criteria?: string;
+  status?: string;
+};
+
 type Ticket = {
   id: string;
   title: string;
   repo: string;
+  type?: string;
+  priority?: string;
   labels?: string[];
   depends_on?: string[];
+  thin_vertical?: string;
+  time_estimate_hours?: number;
+  services_impacted?: string[];
+  slice_type?: string;
   scope?: string[];
   implementation_guidance?: string[];
-  acceptance_criteria?: string[];
+  acceptance_criteria?: (string | AcceptanceCriterion)[];
   allowed_paths?: string[];
   touched_components?: string[];
   test_commands?: string[];
@@ -47,29 +74,43 @@ type Ticket = {
   conditional_test_categories?: string[];
   qa_requirements?: string[];
   escalation_rule?: string;
-  deliverables?: string[];
+  deliverables?: (string | { description: string; eng_criterion?: string; evidence_type?: string })[];
   change_classification?: ChangeClassification;
   existing_code_context?: {
     modules?: string[];
+    components?: string[];
     current_tests?: string[];
     interfaces?: string[];
     notes?: string[];
   };
+  test_traceability_matrix?: TraceabilityRow[];
 };
 
 type Manifest = {
+  manifest_version?: string;
   feature_id: string;
   title: string;
   summary: string;
+  product_context?: {
+    product_synopsis?: string;
+    product_goals_referenced?: Array<{ id: string; goal: string }>;
+    thin_verticals_addressed?: Array<{ id: string; journey: string; why_this_helps_users?: string }>;
+  };
   product_review?: {
     problem?: string;
+    session_problem?: string;
     non_goals?: string[];
+    session_non_goals?: string[];
     hard_restrictions?: string[];
+    constraints?: Array<{ id: string; type: string; description: string; source?: string }>;
   };
   source?: {
     planning_inputs?: {
+      product_brief_ref?: string;
+      architecture_brief_ref?: string;
       prd_refs?: string[];
       architecture_refs?: string[];
+      external_drivers?: Array<{ type: string; description: string; reference?: string }>;
       other_inputs?: string[];
     };
   };
@@ -81,6 +122,9 @@ type Manifest = {
   engineering_review?: {
     default_test_policy?: { always?: string[] };
     default_qa_policy?: { always?: string[] };
+    interfaces_impacted?: Array<{ id: string; description: string; change_type?: string; breaking?: boolean }>;
+    components_impacted?: Array<{ id: string; name: string; change_detail?: string }>;
+    success_criteria?: Array<{ id: string; description: string; product_goal?: string; business_criterion?: string | null }>;
   };
   tickets: Ticket[];
   business_tasks?: BusinessTask[];
@@ -230,10 +274,39 @@ function classifyTests(ticket: Ticket): { required: string[]; conditional: strin
   };
 }
 
+function renderAcceptanceCriteria(criteria?: (string | AcceptanceCriterion)[]): string {
+  if (!criteria?.length) return '- [ ] none';
+  return criteria.map((c) => {
+    if (typeof c === 'string') return `- [ ] ${c}`;
+    return `- [ ] **${c.id}**: ${c.description} _(${c.evidence_type ?? 'test_pass'})_`;
+  }).join('\n');
+}
+
+function renderDeliverables(deliverables?: (string | { description: string; eng_criterion?: string; evidence_type?: string })[]): string {
+  if (!deliverables?.length) return '- none';
+  return deliverables.map((d) => {
+    if (typeof d === 'string') return `- ${d}`;
+    return `- ${d.description} → ${d.eng_criterion ?? 'n/a'} _(${d.evidence_type ?? 'code_change'})_`;
+  }).join('\n');
+}
+
+function renderTraceabilityMatrix(rows?: TraceabilityRow[]): string {
+  if (!rows?.length) return '_No test traceability matrix defined._';
+  const header = '| Trace ID | Product Goal | Eng Criterion | Test Type | Interface | Test File | Stage | Success Criteria |';
+  const sep = '|----------|-------------|---------------|-----------|-----------|-----------|-------|------------------|';
+  const body = rows.map((r) =>
+    `| ${r.trace_id} | ${r.product_goal ?? '—'} | ${r.eng_criterion} | ${r.test_type} | ${(r.interfaces_tested?.length ? r.interfaces_tested.join(', ') : '—')} | ${r.test_file ?? '—'} | ${r.stage} | ${r.success_criteria ?? '—'} |`
+  ).join('\n');
+  return `${header}\n${sep}\n${body}`;
+}
+
 function renderIssueBody(ticket: Ticket): string {
+  const isV2 = !!manifest.manifest_version?.startsWith('2');
+
   const existingModules = [
     ...(manifest.existing_code_context?.modules ?? []),
-    ...(ticket.existing_code_context?.modules ?? [])
+    ...(ticket.existing_code_context?.modules ?? []),
+    ...(ticket.existing_code_context?.components ?? [])
   ];
 
   const related = [
@@ -244,24 +317,52 @@ function renderIssueBody(ticket: Ticket): string {
   const derived = classifyTests(ticket);
   const c = ticket.change_classification ?? {};
 
-  return `## Summary
+  // v2: constraints replace hard_restrictions
+  const constraints = manifest.product_review?.constraints ?? [];
+  const constraintLines = constraints.length
+    ? constraints.map((c: any) => `- **${c.id}** (${c.type}): ${c.description}`).join('\n')
+    : bullets(manifest.product_review?.hard_restrictions);
+
+  // v2: problem field
+  const problem = manifest.product_review?.session_problem ?? manifest.product_review?.problem ?? 'n/a';
+
+  // v2: non-goals
+  const nonGoals = manifest.product_review?.session_non_goals ?? manifest.product_review?.non_goals;
+
+  // v2: interfaces impacted
+  const interfacesImpacted = manifest.engineering_review?.interfaces_impacted ?? [];
+  const interfacesSection = interfacesImpacted.length
+    ? '## Interfaces Impacted\n\n| Interface | Description | Change Type | Breaking? |\n|-----------|-------------|-------------|----------|\n' +
+      interfacesImpacted.map((i: any) => `| ${i.id} | ${i.description} | ${i.change_type ?? 'n/a'} | ${i.breaking ? 'yes' : 'no'} |`).join('\n')
+    : '';
+
+  // v2: components impacted
+  const componentsSection = (ticket.touched_components ?? []).length
+    ? `Touched Components:\n${bullets(ticket.touched_components)}`
+    : '';
+
+  let body = `## Summary
 ${ticket.title} — ${manifest.summary}
+${isV2 && ticket.thin_vertical ? `\n**Thin Vertical:** ${ticket.thin_vertical}` : ''}
+${isV2 && ticket.time_estimate_hours ? `**Time Estimate:** ${ticket.time_estimate_hours} hours` : ''}
+${isV2 && ticket.slice_type ? `**Slice Type:** ${ticket.slice_type}` : ''}
 
 ## Problem
-${manifest.product_review?.problem ?? 'n/a'}
+${problem}
 
 ## Scope
 ${bullets(ticket.scope)}
 
 ## Non-Goals
-${bullets(manifest.product_review?.non_goals)}
+${bullets(nonGoals)}
 
-## Hard Restrictions
-${bullets(manifest.product_review?.hard_restrictions)}
+## Constraints
+${constraintLines}
 
 ## Inputs
+- Product Brief: ${manifest.source?.planning_inputs?.product_brief_ref ?? 'none'}
+- Architecture Brief: ${manifest.source?.planning_inputs?.architecture_brief_ref ?? 'none'}
 - PRD: ${(manifest.source?.planning_inputs?.prd_refs ?? ['none']).join(', ')}
-- Architecture Guidance: ${(manifest.source?.planning_inputs?.architecture_refs ?? ['none']).join(', ')}
 - Existing Code Context: ${(existingModules.length ? existingModules : ['none']).join(', ')}
 - Related Issues/PRs: ${(related.length ? related : ['none']).join(', ')}
 
@@ -269,8 +370,8 @@ ${bullets(manifest.product_review?.hard_restrictions)}
 Repo: ${ticket.repo}
 ${(ticket.allowed_paths?.length === 1 && ticket.allowed_paths[0] === '**') ? 'Allowed Paths: No restrictions — all paths allowed.' : `Allowed Paths:\n${bullets(ticket.allowed_paths)}`}
 
-Touched Components:
-${bullets(ticket.touched_components)}
+${componentsSection}
+${interfacesSection}
 
 ## Change Classification
 - Domain Logic Changed: ${c.domain_logic_changed ? 'yes' : 'no'}
@@ -286,22 +387,10 @@ ${bullets(ticket.touched_components)}
 ${bullets(ticket.implementation_guidance)}
 
 ## Acceptance Criteria
-${bullets(ticket.acceptance_criteria, true)}
+${renderAcceptanceCriteria(ticket.acceptance_criteria)}
 
-## Test Requirements
-Required:
-${bullets(derived.required, true)}
-
-Conditionally Required When Applicable:
-${bullets(derived.conditional, true)}
-
-## QA Requirements
-${bullets(derived.qa, true)}
-
-## Automation Enforcement
-- Symphony derived the required test and QA gates from Change Classification.
-- Codex must satisfy all Required items.
-- Any skipped conditional category must be explained in the PR and review packet.
+## Test Traceability Matrix
+${renderTraceabilityMatrix(ticket.test_traceability_matrix)}
 
 ## Test Commands
 \`\`\`bash
@@ -316,7 +405,19 @@ ${(ticket.test_commands && ticket.test_commands.length) ? ticket.test_commands.j
 ${ticket.escalation_rule ?? 'If implementation requires changes outside Allowed Paths, architecture is ambiguous, or required test/QA categories cannot be completed, stop and return to planning.'}
 
 ## Deliverables
-${bullets(ticket.deliverables)}`;
+${renderDeliverables(ticket.deliverables)}
+
+## Attestation Requirements
+**CI Attestation:** Required before PR review. Human operator must run all CI-stage tests, create attestation via \`scripts/create-attestation.ts --stage CI\`.
+**CD Attestation:** Required before merge. Human operator must deploy to staging, run CD tests, create attestation via \`scripts/create-attestation.ts --stage CD\`.
+
+## Workflow Status Contract
+- Initial Status: Todo
+- Symphony may move: Todo → In Progress → Human Review or Rework
+- Claude may move: Human Review → Merging or Rework
+- Only a successful merge (with both CI and CD attestations) moves a ticket to Done`;
+
+  return body;
 }
 
 // Build payloads

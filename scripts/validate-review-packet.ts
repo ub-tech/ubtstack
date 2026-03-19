@@ -74,17 +74,40 @@ type LegacyCdQa = {
   skipped?: string[];
 };
 
+type TraceabilityRow = {
+  trace_id: string;
+  product_goal?: string;
+  business_criterion?: string | null;
+  eng_criterion?: string;
+  test_type?: string;
+  interfaces_tested?: string[];
+  status?: string;
+  operator?: string;
+  operator_signature?: string;
+};
+
+type AcceptanceCriterionStatus = {
+  id: string;
+  met: boolean;
+  evidence?: string[];
+};
+
 type ReviewPacket = {
+  review_packet_version?: string;
   feature_id: string;
   ticket_id: string;
   branch?: string;
   pr?: string | { title?: string; url?: string };
+  acceptance_criteria_status?: AcceptanceCriterionStatus[];
+  test_traceability_matrix?: TraceabilityRow[];
   implementation_summary?: {
     files_changed?: string[];
     tests_run?: string[];
     tests_passed?: boolean;
     open_questions?: string[];
     notes?: string[];
+    components_modified?: string[];
+    interfaces_modified?: string[];
     test_matrix?: {
       generated_categories?: string[];
       skipped_categories?: Array<{ category: string; reason: string }>;
@@ -102,7 +125,9 @@ type ReviewPacket = {
       remaining_risks?: string[];
     };
   };
-  review_checklist?: string[];
+  ci?: { status: string; attestation_id?: string };
+  cd?: { status: string; attestation_id?: string };
+  review_checklist?: (string | { item: string; status: boolean })[];
 };
 
 // CI-stage test categories
@@ -347,6 +372,52 @@ const prReasons: string[] = [];
 if (branchMissing) prReasons.push('review packet has no branch');
 if (prMissing) prReasons.push('review packet has no pr url');
 
+// v2 traceability matrix validation
+const traceMatrix = packet.test_traceability_matrix ?? [];
+const isV2 = !!packet.review_packet_version?.startsWith('2') || traceMatrix.length > 0;
+
+let traceabilityErrors: string[] = [];
+if (isV2 && traceMatrix.length > 0) {
+  // Every acceptance criterion must have at least one passing test
+  const criteriaStatus = packet.acceptance_criteria_status ?? [];
+  const acceptanceCriteriaIds = new Set(
+    (ticket.acceptance_criteria ?? []).map((c: any) => typeof c === 'string' ? c : c.id).filter(Boolean)
+  );
+
+  const coveredCriteria = new Set(
+    traceMatrix.filter((r) => r.status === 'PASS' && r.eng_criterion).map((r) => r.eng_criterion)
+  );
+  for (const id of acceptanceCriteriaIds) {
+    if (!coveredCriteria.has(id)) {
+      traceabilityErrors.push(`ENG criterion ${id} has no passing test in traceability matrix`);
+    }
+  }
+
+  // No orphan tests (every test must trace to a criterion)
+  for (const row of traceMatrix) {
+    if (!row.eng_criterion) {
+      traceabilityErrors.push(`Test ${row.trace_id} has no eng_criterion — orphan test`);
+    }
+  }
+
+  // Every test must have a product goal
+  for (const row of traceMatrix) {
+    if (!row.product_goal) {
+      traceabilityErrors.push(`Test ${row.trace_id} has no product_goal`);
+    }
+  }
+}
+
+// v2: check for attestation references
+let attestationMissing = false;
+if (isV2) {
+  const ciSection = packet.ci ?? (testMatrix?.ci ? { status: testMatrix.ci.status } : null);
+  if (ciSection && ciSection.status === 'pass' && !ciSection.attestation_id) {
+    // CI passed but no attestation ID — may be pre-attestation
+    // Only warn, don't fail — attestation is checked by completion gate
+  }
+}
+
 const passed = [
   ciPassed,
   missingRequiredTests.length === 0,
@@ -357,7 +428,8 @@ const passed = [
   !testsFailed,
   missingChecklist.length === 0,
   !branchMissing,
-  !prMissing
+  !prMissing,
+  traceabilityErrors.length === 0
 ].every(Boolean);
 
 const summary: Record<string, unknown> = {
@@ -395,7 +467,8 @@ const summary: Record<string, unknown> = {
     missing_review_checklist_items: missingChecklist,
     branch_missing: branchMissing,
     pr_missing: prMissing,
-    pr_reasons: prReasons
+    pr_reasons: prReasons,
+    ...(isV2 ? { traceability_errors: traceabilityErrors } : {})
   }
 };
 

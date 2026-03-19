@@ -1,6 +1,6 @@
 # ubtstack
 
-**ubtstack** is an open-source, AI-native SDLC pipeline by [Unbroken Technologies LLC](https://github.com/ub-tech). It plans, tickets, implements, reviews, stages, and ships — orchestrated by Claude, Symphony, Linear, and Codex.
+**ubtstack** is an open-source, AI-native SDLC pipeline by [Unbroken Technologies LLC](https://github.com/ub-tech). It plans, tickets, implements, reviews, and ships — orchestrated by Claude, Symphony, Linear, and Codex.
 
 Repo-agnostic. ubtstack is the pipeline — your product repo is the target. To connect a target repo, copy `WORKFLOW.md` (agent execution contract), add a `staging/docker-compose.yml` (ephemeral CD environment), and wire up a `.github/workflows/cd-staging.yml` (CI that runs CD tests). ubtstack is never modified by agents.
 
@@ -10,23 +10,25 @@ Repo-agnostic. ubtstack is the pipeline — your product repo is the target. To 
 /kickoff → /plan-ceo-review → /plan-eng-review → /plan-to-linear
   → Symphony picks up Todo tickets from Linear
   → Each ticket gets an isolated branch in the target repo (symphony/ENG-xxx)
-  → Codex agent implements, runs CI tests, writes a review packet
-  → /review (code review + QA gate)
-  → CD staging (ephemeral environment, target repo owns)
-  → /ship (verify CD results, open PR)
-  → Human approves and merges
+  → Codex agent implements via TDD, generates CI evidence
+  → /ship (structural code review + CI validation + PR)
+  → Human approves and merges → tag
+  → /deploy (CD tests for all tickets in tag)
+  → Deploy → /retro
 ```
 
 One ticket = one branch = one PR. All code lives in the target repo. ubtstack is never modified by agents — it only provides the pipeline tooling.
 
-### Customizable test stages
+### Two-stage testing
 
 During `/plan-eng-review`, you choose which test categories run at each stage:
 
-- **CI stage** — fast, deterministic tests that run on every commit (e.g., build, lint, unit, integration, smoke)
-- **CD stage** — heavier tests that run against a staging environment (e.g., system/e2e, regression, security, fuzz, load)
+- **CI stage** (per-ticket, during `/ship`) — fast, deterministic tests that run on every commit (e.g., build, lint, unit, integration, smoke)
+- **CD stage** (per-tag, during `/deploy`) — heavier tests that run against a staging environment (e.g., system/e2e, regression, security, fuzz, load)
 
 These selections flow into the planning manifest and are enforced per-ticket. Different issues can have different test requirements — a pure logic change might only need CI unit tests, while a trust-boundary change requires CD security and fuzz tests.
+
+CD testing is fully decoupled from per-ticket work. Tickets are merged into tags. Deployments are by tag. `/deploy` runs CD tests for all tickets in a tag at once.
 
 Your target repo owns the staging environment (`staging/docker-compose.yml`) and the CD workflow (`.github/workflows/cd-staging.yml`), so you control what infrastructure is available and how tests execute.
 
@@ -98,6 +100,8 @@ your-root/
 │   └── elixir/
 ├── ubtstack/             # SDLC pipeline tooling (this repo)
 │   ├── .claude/skills/    # Slash command implementations
+│   ├── .claude/commands/  # Slash command entry points
+│   ├── .claude/templates/ # Manifest, review packet, attestation templates
 │   ├── scripts/           # Validation, sync, ticket creation
 │   └── WORKFLOW.md        # Agent execution contract (copy to target repo)
 └── your-target-repo/      # Your product code (the only repo agents modify)
@@ -149,27 +153,49 @@ Symphony only claims issues that are in the **Todo** state within the configured
 
 Start your Claude instance from your target repo directory. ubtstack skills are invoked from there.
 
+### Discovery & pre-planning (optional)
+
 | Command | What it does |
 |---------|-------------|
-| `/kickoff` | Ingest PRD, spec, or brief |
-| `/plan-ceo-review` | Product review — scope, constraints, non-goals |
-| `/plan-eng-review` | Architecture, test strategy, ticket breakdown |
+| `/create-product-brief` | Create a product brief (required anchor document) |
+| `/create-architecture-brief` | Create an architecture brief (required anchor document) |
+| `/write-a-prd` | Interactive PRD creation through interview and codebase exploration |
+| `/grill-me` | Adversarial interview to stress-test a plan or design |
+| `/triage` | Bug investigation → root cause analysis → Linear issue with TDD fix plan |
+| `/discover-architecture` | Codebase exploration for architectural improvement opportunities |
+| `/plan-refactor` | Detailed refactor plan with tiny commits → Linear issue |
+| `/tdd` | Interactive TDD session with red-green-refactor loop |
+
+### Core pipeline
+
+| Command | What it does |
+|---------|-------------|
+| `/kickoff` | Full sandwich workflow — brief enforcement, skill composition, CEO + eng review, ticketization |
+| `/plan-ceo-review` | Product review — scope, constraints, non-goals (delegates interrogation to `/grill-me`) |
+| `/plan-eng-review` | Architecture, test strategy, ticket breakdown (delegates interrogation to `/grill-me`) |
 | `/plan-to-linear` | Create Linear issues from the planning manifest |
-| `/review` | Two-pass code review + CI/QA gate validation |
-| `/ship` | Verify CD results, simplification pass, create PR |
+| `/ship` | Structural code review + CI validation + simplification pass + create PR |
+| `/deploy` | Tag-based CD testing across all tickets in a release |
 | `/retro` | Post-ship retrospective |
 
-Agents handle implementation automatically. Move Linear issues from Backlog to Todo when ready.
+### Post-planning
+
+| Command | What it does |
+|---------|-------------|
+| `/update-product-brief` | Update the product brief after a session |
+| `/update-architecture-brief` | Update the architecture brief after a session |
+
+Agents handle implementation automatically via TDD. Move Linear issues from Backlog to Todo when ready.
 
 ### Vibe mode
 
 Want to skip the guardrails and ship fast? After agents implement and CI passes:
 
-1. Skip `/review` and `/ship`
+1. Skip `/ship`
 2. Review the PR diff yourself
 3. Merge directly
 
-The full pipeline (`/review` → CD staging → `/ship` → human approval) exists to catch what you'd miss at speed. Use vibe mode for low-risk changes where you trust the agent output and CI coverage. Use the full pipeline for anything touching trust boundaries, funds, or production infrastructure.
+The full pipeline (`/ship` → human approval → merge → tag → `/deploy`) exists to catch what you'd miss at speed. Use vibe mode for low-risk changes where you trust the agent output and CI coverage. Use the full pipeline for anything touching trust boundaries, funds, or production infrastructure.
 
 ## Key files
 
@@ -178,8 +204,9 @@ The full pipeline (`/review` → CD staging → `/ship` → human approval) exis
 | `CLAUDE.md` | Claude | Full production rules, testing policy, commit conventions |
 | `WORKFLOW.md` | Symphony/Codex agents | 7-phase agent execution contract |
 | `.claude/skills/` | Claude | Slash command implementations |
-| `scripts/` | Agents + humans | Validation, sync, ticket creation |
-| `docs/technical/` | Humans | Protocol specs (CD staging, etc.) |
+| `.claude/commands/` | Claude | Slash command entry points (kickoff, deploy, plan-to-linear) |
+| `.claude/templates/` | Claude + scripts | Manifest, review packet, attestation, Linear issue body templates |
+| `scripts/` | Agents + humans | Validation, sync, ticket creation, attestation |
 
 ## Configuration
 
@@ -206,7 +233,12 @@ Found a bug or have a feature request? [Open an issue](https://github.com/ub-tec
 
 ## Acknowledgments
 
-The skill-based workflow pattern in ubtstack was inspired by [gstack](https://github.com/garrytan/gstack) by Garry Tan. The core planning, review, QA, ship, and retro skills were derived from gstack's approach and extended with Linear integration, Symphony orchestration, review-packet validation, and completion gates.
+The skill-based workflow pattern in ubtstack was inspired by and builds on work from these projects:
+
+- [gstack](https://github.com/garrytan/gstack) by Garry Tan — the original skill-based workflow pattern for Claude Code
+- [skills](https://github.com/mattpocock/skills) by Matt Pocock — skill packaging and distribution patterns
+- [superpowers](https://github.com/obra/superpowers) by Jesse Vincent — plugin and skill system architecture
+- [marketingskills](https://github.com/coreyhaines31/marketingskills) — marketing-focused agent skills
 
 See also [claude-code-best-practice](https://github.com/shanraisshan/claude-code-best-practice) for community patterns around Claude Code workflows.
 

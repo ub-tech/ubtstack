@@ -15,5 +15,8 @@ dist/
 AGENTS.md
 .claude/settings.local.json
 
+# Reference repos (local only, not committed)
+references/
+
 # OS
 .DS_Store
