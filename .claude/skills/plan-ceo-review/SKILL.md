@@ -1,16 +1,14 @@
-
 ---
 name: plan-ceo-review
-version: 2.0.0
+version: 4.0.0
 description: |
-  CEO/founder-mode plan review. Rethink the problem, find the 10-star product,
-  challenge premises, expand scope when it creates a better product. Four modes:
-  SCOPE EXPANSION (dream big), SELECTIVE EXPANSION (hold + cherry-pick),
-  HOLD SCOPE (maximum rigor), SCOPE REDUCTION (strip to essentials).
-  Produces product-level decisions, not engineering design.
+  CEO/founder-mode plan review with mandatory interrogation-first pattern.
+  Three phases: (0) Brief Enforcement, (1) Interrogation (delegates to grill-me
+  protocol v3.0.0), (2) Analysis, (3) Approval Gate. Four modes: SCOPE EXPANSION,
+  SELECTIVE EXPANSION, HOLD SCOPE, SCOPE REDUCTION. Produces product-level decisions.
 ---
 
-# Mega Plan Review Mode
+# CEO Plan Review — v4.0.0
 
 ## Philosophy
 
@@ -82,12 +80,54 @@ The output of this step should answer:
 
 ## Priority Hierarchy Under Context Pressure
 
-Step 0 > System audit > Error map > Test diagram > Failure modes > Opinionated recommendations > Everything else.
-Never skip Step 0, the system audit, or the failure modes section.
+Phase 0 (brief enforcement) > Phase 1 (interrogation, min 10 questions) >
+Mode Selection > System audit > Error map > Test diagram > Failure modes >
+Phase 3 (approval gate) > Everything else.
+Never skip Phase 0, Phase 1, or Phase 3.
 
-## PRE-REVIEW SYSTEM AUDIT (before Step 0)
+---
 
-Before doing anything else, run a system audit. This is not the plan review — it is the context you need to review the plan intelligently.
+# PHASE 0: Brief Enforcement (HARD GATE)
+
+Before doing anything else, verify that both anchor documents exist.
+
+### Product Brief Check
+```bash
+cat .claude/product-brief.md 2>/dev/null | head -5
+```
+
+If the product brief does not exist or is empty:
+- **STOP.** Tell the user: **"No product brief found at `.claude/product-brief.md`. This is required to ground the CEO review in the product's context. Run `/create-product-brief` first."**
+- Do NOT proceed. Do NOT attempt to review without it.
+
+### Architecture Brief Check
+```bash
+cat .claude/architecture-brief.md 2>/dev/null | head -5
+```
+
+If the architecture brief does not exist or is empty:
+- **STOP.** Tell the user: **"No architecture brief found at `.claude/architecture-brief.md`. This is required as context for the review. Run `/create-architecture-brief` first."**
+- Do NOT proceed. Do NOT attempt to review without it.
+
+### Product Anchor Statement
+
+Read `.claude/product-brief.md` in full. Generate an anchor statement:
+
+**Format:** "[Product Name] helps [target users] solve [problem] by [strategy]. Success measured by [PG-xxx]. This session addresses [TV-xxx]."
+
+Present to the user: **"Here's my understanding of the product anchor for this review. Please confirm before we proceed:"**
+
+Display the anchor statement. **STOP.** Wait for confirmation. If the user corrects anything, update and re-confirm. Do NOT proceed until the user confirms.
+
+---
+
+# PHASE 1: Interrogation
+
+**This phase delegates to the `grill-me` protocol (v3.0.0) in embedded mode.** CEO review owns the question pool, selection criteria, and pre-interrogation audit. Grill-me owns the asking cadence, push-back decisions, ledger tracking, and exit criteria.
+
+## Pre-Interrogation System Audit (CEO review owns this)
+
+Before invoking grill-me, run a system audit to inform question selection:
 
 ```bash
 git log --oneline -30
@@ -105,38 +145,74 @@ Inspect the codebase for existing patterns relevant to this plan:
 Check the git log for this branch. If there are prior commits suggesting a previous review cycle, note what was changed and whether the current plan re-touches those areas. Recurring problem areas are architectural smells.
 
 ### Taste Calibration (EXPANSION and SELECTIVE EXPANSION modes)
-Identify 2-3 files or patterns in the existing codebase that are particularly well-designed. Note 1-2 patterns that are frustrating. Report before Step 0.
+Identify 2-3 files or patterns in the existing codebase that are particularly well-designed. Note 1-2 patterns that are frustrating. Report before interrogation begins.
 
-## Discovery Questions (before Step 0)
+## CEO Question Pool
 
-Before reviewing the plan, probe the human for context that may not be in the documents. Ask these as individual AskUserQuestion calls. Skip any that are already answered in the provided inputs.
+| # | Question | Source |
+|---|----------|--------|
+| Q1 | **Problem Validation** — What is the strongest evidence this problem is real and painful? Quantify it. | gstack office-hours Q1 |
+| Q2 | **User Evidence** — Name the specific person who uses this first. What have you observed them doing? | Discovery Q1 + gstack Q3 |
+| Q3 | **Status Quo Challenge** — What are users doing now, even badly? What does the workaround cost them? | gstack office-hours Q2 |
+| Q4 | **Premise Challenge** — Is this the right problem? Could a different framing yield a simpler solution? What if we do nothing? | Step 0A |
+| Q5 | **Competitive Pressure** — Who else is solving this? Is there a deadline for market positioning? | Discovery Q2 |
+| Q6 | **Strategic Fit (PB Alignment)** — How does this advance PG-xxx goals and TV-xxx verticals? Which goal moves most? | product-brief |
+| Q7 | **Narrowest Wedge** — What is the smallest version that delivers real value this week? | gstack office-hours Q4 |
+| Q8 | **What Has Failed Before** — Has this been attempted before? What went wrong? | Discovery Q3 |
+| Q9 | **Six-Month Vision** — Is this a foundation or standalone? What builds on top of it? | Discovery Q4 |
+| Q10 | **Non-Obvious Domain Knowledge** — What assumptions are baked in that aren't written down? | Discovery Q5 |
+| Q11 | **Existing Code Leverage** — What existing code already solves sub-problems? Are we rebuilding anything? | Step 0B |
+| Q12 | **Observation & Surprise** — Have you watched someone use the existing system? What surprised you? | gstack office-hours Q5 |
+| Q13 | **Dream State vs. Reality** — Describe the 12-month ideal state. Where does this plan leave us? How big is the gap? | Step 0C |
+| Q14 | **Future-Fit** — In 2-3 years, does this become more valuable or technical debt? | gstack office-hours Q6 |
+| Q15 | **Uncomfortable Tradeoffs** — What are you deliberately sacrificing? What risk are you accepting? | New |
 
-1. **Who is the first user?** Not the category — the specific person or team who will use this first. What do they care about most?
-2. **What's the competitive pressure?** Is someone else building this? Is there a deadline that matters for market positioning?
-3. **What has failed before?** Has this been attempted before? What went wrong? What should we avoid repeating?
-4. **What's the 6-month vision?** Where does this feature sit in the product roadmap? Is this a foundation or a standalone?
-5. **What's non-obvious?** What domain knowledge would a new engineer not have? What assumptions are baked in that aren't written down?
+## Grill-Me Invocation (Embedded Mode)
 
-These questions surface constraints and context that shape every downstream decision. Capture the answers as inputs to the review.
+Execute Phase 1 interrogation using the grill-me protocol in embedded mode. Provide it with the question pool above, mark Q1-Q4 as mandatory, require minimum 10 questions, and pass the system audit findings as selection context. Q11 is codebase-answerable — grill-me should explore the codebase for it before asking. Present the pre-interrogation findings (system audit, retrospective check, taste calibration) before the first question.
 
-## Step 0: Nuclear Scope Challenge + Mode Selection
+### Question Selection Guidance
 
-### 0A. Premise Challenge
-1. Is this the right problem to solve? Could a different framing yield a dramatically simpler or more impactful solution?
-2. What is the actual user/business outcome? Is the plan the most direct path?
-3. What would happen if we did nothing? Real pain point or hypothetical?
+After mandatory Q1-Q4, select remaining questions based on:
+- **Audit found TODOs or recurring problems** → Prioritize Q8, Q14
+- **Greenfield work** → Prioritize Q9, Q13
+- **Iteration on existing system** → Prioritize Q11, Q12, Q14
+- **Multiple prior review cycles** → Prioritize Q8, Q15
+- **Product brief has gaps** → Prioritize Q6, Q10
+- **Architecture brief has gaps** → Prioritize Q11, Q14
+- **Pre-selected EXPANSION mode** → Prioritize Q9, Q13, Q14
+- **Pre-selected REDUCTION mode** → Prioritize Q7, Q15
 
-### 0B. Existing Code Leverage
-1. What existing code already partially or fully solves each sub-problem? Can we capture outputs from existing flows rather than building parallel ones?
-2. Is this plan rebuilding anything that already exists? If yes, explain why rebuilding is better than refactoring.
+### Post-Interrogation
 
-### 0C. Dream State Mapping
-```
-  CURRENT STATE                  THIS PLAN                  12-MONTH IDEAL
-  [describe]          --->       [describe delta]    --->    [describe target]
-```
+Grill-me returns the completed ledger in its canonical format. The grill-me protocol handles the "Any corrections?" prompt. Do NOT proceed to Phase 2 until the user confirms the ledger.
 
-### 0D. Mode-Specific Analysis
+---
+
+# PHASE 2: Analysis
+
+All analysis in this phase is informed by the interrogation ledger from Phase 1. Reference specific Q-answers when they shape decisions.
+
+## Mode Selection
+
+If a mode was pre-selected (e.g., from `/kickoff` Phase 2), use that mode and skip this question. State: "Using pre-selected mode: {MODE}."
+
+Otherwise, present four options:
+1. **SCOPE EXPANSION:** The plan is good but could be great. Push scope up. Build the cathedral.
+2. **SELECTIVE EXPANSION:** Hold current scope as baseline, surface expansion opportunities one-by-one for cherry-picking. Neutral recommendations.
+3. **HOLD SCOPE:** The plan's scope is right. Make it bulletproof.
+4. **SCOPE REDUCTION:** The plan is overbuilt. Propose the minimal version.
+
+Context-dependent defaults:
+- Greenfield feature -> default EXPANSION
+- Feature enhancement or iteration on existing system -> default SELECTIVE EXPANSION
+- Bug fix or hotfix -> default HOLD SCOPE
+- Refactor -> default HOLD SCOPE
+- Plan touching >15 files -> suggest REDUCTION
+
+**STOP.** AskUserQuestion once per issue. Recommend + WHY. Do NOT proceed until user responds.
+
+## Mode-Specific Analysis
 
 **For SCOPE EXPANSION** — run all three:
 1. 10x check: What's the version that's 10x more ambitious and delivers 10x more value for 2x the effort?
@@ -160,7 +236,7 @@ These questions surface constraints and context that shape every downstream deci
 1. Ruthless cut: What is the absolute minimum that ships value? Everything else is deferred.
 2. What can be a follow-up PR? Separate "must ship together" from "nice to ship together."
 
-### 0E. Temporal Interrogation (EXPANSION, SELECTIVE EXPANSION, and HOLD modes)
+## Temporal Interrogation (EXPANSION, SELECTIVE EXPANSION, and HOLD modes)
 Think ahead to implementation:
 ```
   HOUR 1 (foundations):     What does the implementer need to know?
@@ -168,25 +244,6 @@ Think ahead to implementation:
   HOUR 4-5 (integration):  What will surprise them?
   HOUR 6+ (polish/tests):  What will they wish they'd planned for?
 ```
-
-### 0F. Mode Selection
-
-If a mode was pre-selected (e.g., from `/kickoff` Phase 1), use that mode and skip this question. State: "Using pre-selected mode: {MODE}."
-
-Otherwise, present four options:
-1. **SCOPE EXPANSION:** The plan is good but could be great. Push scope up. Build the cathedral.
-2. **SELECTIVE EXPANSION:** Hold current scope as baseline, surface expansion opportunities one-by-one for cherry-picking. Neutral recommendations.
-3. **HOLD SCOPE:** The plan's scope is right. Make it bulletproof.
-4. **SCOPE REDUCTION:** The plan is overbuilt. Propose the minimal version.
-
-Context-dependent defaults:
-- Greenfield feature -> default EXPANSION
-- Feature enhancement or iteration on existing system -> default SELECTIVE EXPANSION
-- Bug fix or hotfix -> default HOLD SCOPE
-- Refactor -> default HOLD SCOPE
-- Plan touching >15 files -> suggest REDUCTION
-
-**STOP.** AskUserQuestion once per issue. Recommend + WHY. Do NOT proceed until user responds.
 
 ## Review Sections (after scope and mode are agreed)
 
@@ -355,7 +412,24 @@ Use AskUserQuestion. Prompt with examples:
 - Testing mandates (minimum coverage, specific test types required)
 - External API or protocol constraints
 
-Capture all restrictions verbatim. These flow into the planning manifest under `hard_restrictions` and are enforced on every ticket — Codex agents must obey them, and the completion gate validates compliance.
+Capture all restrictions verbatim. These flow into the planning manifest under `constraints` and are enforced on every ticket.
+
+---
+
+# PHASE 3: Approval Gate
+
+Present the complete output artifact (all required outputs below) to the user.
+
+**STOP.** AskUserQuestion with 4 options:
+
+- **A) Approve** — Output becomes the locked CEO artifact. Proceed to eng review.
+- **B) Approve with modifications** — Specify which sections to revise. Revise those sections, then re-present for approval.
+- **C) Reject — revisit interrogation** — Return to Phase 1 for specific questions that need re-examination. Re-invokes grill-me in embedded mode with targeted questions.
+- **D) Reject — fundamental rethink** — Restart from Phase 1 entirely with a different framing. Full grill-me re-invocation.
+
+**Do NOT hand off to `/plan-eng-review` until the user selects option A.**
+
+---
 
 ## Required output
 
@@ -371,6 +445,9 @@ Produce a planning artifact with:
 - input provenance (PRD refs, architecture refs, other inputs)
 
 ## Required outputs (from review)
+
+### Interrogation Ledger
+Complete ledger from Phase 1 in grill-me canonical format showing RESOLVED / PENDING / SKIPPED for each question asked.
 
 ### "NOT in scope" section
 List work considered and explicitly deferred, with one-line rationale each.
@@ -399,9 +476,10 @@ Any row with HANDLED=N, TEST=N, USER SEES=Silent -> **CRITICAL GAP**.
 
 ### Completion Summary
 ```
+  Phase 0              | Brief enforcement: PASSED
+  Phase 1              | Grill-me embedded: ___ questions asked, ___ resolved, ___ pending
   Mode selected        | EXPANSION / SELECTIVE / HOLD / REDUCTION
   System Audit         | [key findings]
-  Step 0               | [mode + key decisions]
   Section 1  (Arch)    | ___ issues found
   Section 2  (Errors)  | ___ error paths mapped, ___ GAPS
   Section 3  (Security)| ___ issues found, ___ High severity
@@ -412,6 +490,7 @@ Any row with HANDLED=N, TEST=N, USER SEES=Silent -> **CRITICAL GAP**.
   Section 8  (Observ)  | ___ gaps found
   Section 9  (Deploy)  | ___ risks flagged
   Section 10 (Future)  | Reversibility: _/5, debt items: ___
+  Phase 3              | APPROVED / APPROVED WITH MODIFICATIONS / REJECTED
 ```
 
 ## CRITICAL RULE — How to ask questions
@@ -421,6 +500,8 @@ Every AskUserQuestion MUST: (1) present 2-3 concrete lettered options, (2) state
 **One issue = one AskUserQuestion call.** Lead with your recommendation as a directive. Map reasoning to engineering preferences. Label with issue NUMBER + option LETTER (e.g., "3A", "3B").
 
 **Escape hatch:** If a section has no issues, say so and move on. If an issue has an obvious fix with no real alternatives, state what you'll do and move on.
+
+**Phase 1 exception:** Interrogation questions follow grill-me protocol rules — they may be open-ended to elicit the user's reasoning. The lettered-options rule applies to Phase 2 analysis questions, not Phase 1 interrogation.
 
 ## Hand-off rule
 

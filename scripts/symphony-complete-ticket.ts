@@ -44,7 +44,7 @@ if (!['check', 'complete'].includes(mode)) fail(`Unsupported mode: ${mode}`);
 const rootDir = path.resolve(path.dirname(new URL(import.meta.url).pathname));
 const validatorPath = path.join(rootDir, 'validate-review-packet.ts');
 if (!fs.existsSync(validatorPath)) fail(`Validator not found: ${validatorPath}`);
-if (!contractPath) contractPath = path.join(rootDir, '..', '.claude', 'templates', 'linear-status-contract.template.json');
+if (!contractPath) contractPath = path.join(rootDir, '..', '.claude', 'templates', 'linear-status-contract-v2.template.json');
 if (!fs.existsSync(contractPath)) fail(`Linear status contract not found: ${contractPath}`);
 const resolverPath = path.join(rootDir, 'resolve-linear-transition.ts');
 if (!fs.existsSync(resolverPath)) fail(`Transition resolver not found: ${resolverPath}`);
@@ -67,7 +67,30 @@ try {
 }
 
 const validationPassed = !!summary.validation?.passed;
-const outcome = validationPassed ? 'validation_pass' : 'validation_fail';
+
+// v2: Check for CI attestation
+const packetData = JSON.parse(fs.readFileSync(path.resolve(packetPath), 'utf8'));
+const ticketIdForAttestation = linearTicketId || packetData.ticket_id || '';
+const ciAttestationPath = path.join(path.dirname(path.resolve(packetPath)), `attestation-${ticketIdForAttestation}-CI.json`);
+let ciAttested = false;
+let attestationErrors: string[] = [];
+
+if (fs.existsSync(ciAttestationPath)) {
+  try {
+    const attestation = JSON.parse(fs.readFileSync(ciAttestationPath, 'utf8'));
+    const allPassed = (attestation.tests_executed ?? []).every((t: any) => t.status === 'PASS');
+    const hasSignature = attestation.signature?.method === 'gpg-detach-sign' && attestation.signature?.signature_file;
+    ciAttested = allPassed && !!hasSignature;
+    if (!allPassed) attestationErrors.push('CI attestation has failing tests');
+    if (!hasSignature) attestationErrors.push('CI attestation is not GPG-signed');
+  } catch {
+    attestationErrors.push('CI attestation file is malformed');
+  }
+} else {
+  attestationErrors.push(`CI attestation not found: ${ciAttestationPath}`);
+}
+
+const outcome = (validationPassed && ciAttested) ? 'validation_pass' : 'validation_fail';
 const transition = spawnSync(process.execPath, [...execArgv, resolverPath, contractPath, currentStatus, outcome, '--actor', 'symphony'], {
   cwd: process.cwd(),
   encoding: 'utf8'
@@ -91,6 +114,11 @@ const output = {
   outcome,
   next_status: transitionSummary.next_status,
   transition_allowed: transitionSummary.allowed_transition,
+  ci_attestation: {
+    found: fs.existsSync(ciAttestationPath),
+    valid: ciAttested,
+    errors: attestationErrors
+  },
   validator_summary: summary,
   transition_summary: transitionSummary
 };
@@ -102,7 +130,7 @@ Illegal Linear transition: ${currentStatus} -> ${transitionSummary.next_status} 
   process.exit(1);
 }
 
-if (!validationPassed) {
+if (!validationPassed || !ciAttested) {
   console.error(`
 Symphony must not complete ${linearTicketId || summary.ticket_id}.`);
   console.error(`Move ticket to ${transitionSummary.next_status}.`);
@@ -113,6 +141,12 @@ Symphony must not complete ${linearTicketId || summary.ticket_id}.`);
       console.error(`- ${key}: ${value.join('; ')}`);
     } else if (value === true && key !== 'passed') {
       console.error(`- ${key}`);
+    }
+  }
+  if (attestationErrors.length > 0) {
+    console.error('Attestation issues:');
+    for (const e of attestationErrors) {
+      console.error(`- ${e}`);
     }
   }
   process.exit(1);

@@ -1,0 +1,76 @@
+{
+  "_comment": "Human operator attestation record. Required before PR merge or deployment. Created by scripts/create-attestation.ts.",
+
+  "attestation_id": "ATT-2026-0319-001",
+  "feature_id": "PLAN-001",
+  "ticket_id": "ENG-101",
+  "pr_url": "https://github.com/example/repo/pull/42",
+  "branch": "feature/ENG-101-pending-retry-state",
+  "git_ref": "abc1234",
+
+  "operator": {
+    "name": "kyle.makinen",
+    "email": "kyle@example.com"
+  },
+
+  "stage": "CI",
+  "timestamp": "2026-03-19T14:32:00Z",
+
+  "environment": {
+    "staging_env_version": null,
+    "os": "darwin 25.1.0",
+    "runtime": "rustc 1.77.0",
+    "notes": "Local development environment"
+  },
+
+  "tests_executed": [
+    {
+      "trace_id": "TM-ENG-101-01",
+      "test_file": "tests/orders/state_test.rs",
+      "command": "cargo test --package omega-orders -- state_test::test_payment_timeout_transitions_to_pending_retry",
+      "exit_code": 0,
+      "duration_ms": 1200,
+      "log_file": ".claude/state/logs/ATT-2026-0319-001/TM-ENG-101-01.log",
+      "log_hash": "sha256:a1b2c3d4e5f6...",
+      "status": "PASS"
+    },
+    {
+      "trace_id": "TM-ENG-101-02",
+      "test_file": "tests/orders/state_test.rs",
+      "command": "cargo test --package omega-orders -- state_test::test_completed_to_pending_retry_rejected",
+      "exit_code": 0,
+      "duration_ms": 800,
+      "log_file": ".claude/state/logs/ATT-2026-0319-001/TM-ENG-101-02.log",
+      "log_hash": "sha256:f6e5d4c3b2a1...",
+      "status": "PASS"
+    },
+    {
+      "trace_id": "TM-ENG-101-03",
+      "test_file": "tests/orders/state_test.rs",
+      "command": "cargo test --package omega-orders -- state_test",
+      "exit_code": 0,
+      "duration_ms": 4200,
+      "log_file": ".claude/state/logs/ATT-2026-0319-001/TM-ENG-101-03.log",
+      "log_hash": "sha256:1a2b3c4d5e6f...",
+      "status": "PASS"
+    }
+  ],
+
+  "summary": {
+    "total_tests": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "total_duration_ms": 6200
+  },
+
+  "attestation_statement": "I, kyle.makinen, attest that I personally executed the above test commands on git ref abc1234, observed the results in real-time, and confirm that all tests passed as documented. The log files referenced above contain the complete, unmodified output of each test run.",
+
+  "signature": {
+    "method": "gpg-detach-sign",
+    "gpg_key_id": "0xABCD1234EFGH5678",
+    "signed_payload_hash": "sha256:...",
+    "signature_file": ".claude/state/logs/ATT-2026-0319-001/attestation.sig",
+    "_comment": "GPG detached signature of the canonical JSON (attestation_statement + tests_executed, deterministically serialized). Created by: gpg --detach-sign --armor --output attestation.sig attestation-payload.json. Validated by scripts/validate-attestation.ts using gpg --verify against the key registered in APPROVAL_REQUIRED_FROM + GPG_KEY_ID in .env. If operator has no GPG key, create-attestation.ts errors with setup instructions rather than falling back."
+  }
+}

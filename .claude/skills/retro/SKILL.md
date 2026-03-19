@@ -130,6 +130,34 @@ mkdir -p .context/retros
 
 Save JSON snapshot with all computed metrics.
 
+### Step 13: Architecture Brief Reconciliation (mandatory)
+
+Check if `.claude/architecture-brief.md` exists. If it does:
+
+1. Read the architecture brief
+2. Compare against actual code changes in the retro window:
+   - Are there new files/modules not mapped to any COMP-xxx?
+   - Are there new inter-process calls not documented as IF-xxx?
+   - Are there new test files not reflected in the Component Unit Test Summary?
+   - Were any PROC-xxx processes added or removed?
+
+3. If drift is found, present findings:
+   **"The architecture brief has drifted from the actual code. These items need updating:"**
+   - List each new/changed/removed element
+
+4. Ask: **"Should I update the architecture brief now?"**
+   - If yes → run `/update-architecture-brief` with the drift findings as context
+   - If no → note the drift in the retro output as a debt item
+
+### Step 14: Product Brief Review (optional)
+
+If `.claude/product-brief.md` exists, check if any retro findings suggest product brief updates:
+- Were any PG-xxx metrics impacted by shipped work?
+- Did any TV-xxx verticals complete or change status?
+- Are there new risks observed during implementation?
+
+If updates are warranted, suggest: **"Consider running /update-product-brief to reflect: [specific changes]"**
+
 ## Narrative Structure
 
 1. Tweetable summary (first line)
@@ -144,6 +172,8 @@ Save JSON snapshot with all computed metrics.
 10. Top 3 team wins
 11. 3 things to improve
 12. 3 habits for next week
+13. Architecture brief status (current / drifted — with details)
+14. Product brief recommendations (if any)
 
 ## Tone
 
