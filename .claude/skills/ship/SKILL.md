@@ -35,6 +35,17 @@ CD testing is **not** part of `/ship`. CD tests run at the tag level via `/deplo
 
 ---
 
+## Step 1.5: Mode selection
+
+AskUserQuestion: **"How do you want to ship this?"**
+
+- **A) Full review (Recommended)** — Structural code review, CI validation, completion gate, simplification pass, then PR.
+- **B) Vibe mode** — Skip review and validation. Merge main, commit, push, create PR. You review the diff yourself.
+
+If the user selects **B (Vibe mode)**, skip Steps 3–6 entirely. Jump from Step 2 (merge main) directly to Step 7 (commit). The PR body uses the simplified vibe-mode template (see Step 9).
+
+---
+
 ## Step 2: Merge origin/main
 
 Fetch and merge `origin/main` into the feature branch so tests run against the merged state:
@@ -229,6 +240,8 @@ git push -u origin $(git branch --show-current)
 
 ## Step 9: Create PR
 
+### Full review mode
+
 ```bash
 gh pr create --title "<type>: <summary>" --body "$(cat <<'EOF'
 ## Summary
@@ -262,6 +275,26 @@ gh pr create --title "<type>: <summary>" --body "$(cat <<'EOF'
 
 ---
 *CD testing runs at the tag level via `/deploy` after merge.*
+EOF
+)"
+```
+
+### Vibe mode
+
+```bash
+gh pr create --title "<type>: <summary>" --body "$(cat <<'EOF'
+## Summary
+<bullet points describing the change>
+
+## Vibe mode
+Shipped without structural review, CI validation, or completion gate.
+Human reviewer owns the quality check.
+
+## Diff
+`git diff main...HEAD --stat`
+
+## Approval Required
+@$APPROVAL_REQUIRED_FROM — please review and approve.
 EOF
 )"
 ```

@@ -153,47 +153,38 @@ Symphony only claims issues that are in the **Todo** state within the configured
 
 Start your Claude instance from your target repo directory. ubtstack skills are invoked from there.
 
-### Discovery & pre-planning (optional)
-
-| Command | What it does |
-|---------|-------------|
-| `/create-product-brief` | Create a product brief (required anchor document) |
-| `/create-architecture-brief` | Create an architecture brief (required anchor document) |
-| `/write-a-prd` | Interactive PRD creation through interview and codebase exploration |
-| `/grill-me` | Adversarial interview to stress-test a plan or design |
-| `/triage` | Bug investigation → root cause analysis → Linear issue with TDD fix plan |
-| `/discover-architecture` | Codebase exploration for architectural improvement opportunities |
-| `/plan-refactor` | Detailed refactor plan with tiny commits → Linear issue |
-| `/tdd` | Interactive TDD session with red-green-refactor loop |
-
 ### Core pipeline
 
-| Command | What it does |
-|---------|-------------|
-| `/kickoff` | Full sandwich workflow — brief enforcement, skill composition, CEO + eng review, ticketization |
-| `/plan-ceo-review` | Product review — scope, constraints, non-goals (delegates interrogation to `/grill-me`) |
-| `/plan-eng-review` | Architecture, test strategy, ticket breakdown (delegates interrogation to `/grill-me`) |
-| `/plan-to-linear` | Create Linear issues from the planning manifest |
-| `/ship` | Structural code review + CI validation + simplification pass + create PR |
-| `/deploy` | Tag-based CD testing across all tickets in a release |
-| `/retro` | Post-ship retrospective |
-
-### Post-planning
-
-| Command | What it does |
-|---------|-------------|
-| `/update-product-brief` | Update the product brief after a session |
-| `/update-architecture-brief` | Update the architecture brief after a session |
+| Command                | What it does |
+|------------------------|-------------|
+| `/kickoff`             | Full sandwich workflow — brief enforcement, skill composition, CEO + eng review, ticketization |
+| `/plan-ceo-review`     | Product review — scope, constraints, non-goals (delegates interrogation to `/grill-me`) |
+| `/plan-eng-review`     | Architecture, test strategy, ticket breakdown (delegates interrogation to `/grill-me`) |
+| `/plan-to-linear`      | Create Linear issues from the planning manifest |
+| `/ship`                | Structural code review + CI validation + simplification pass + create PR |
+| `/deploy`              | Tag-based CD testing across all tickets in a release |
+| `/retro`               | Post-ship retrospective |
 
 Agents handle implementation automatically via TDD. Move Linear issues from Backlog to Todo when ready.
 
+### Optional commands
+
+| Command                        | What it does |
+|--------------------------------|-------------|
+| `/create-product-brief`        | Create a product brief (required anchor document) |
+| `/create-architecture-brief`   | Create an architecture brief (required anchor document) |
+| `/update-product-brief`        | Update the product brief after a session |
+| `/update-architecture-brief`   | Update the architecture brief after a session |
+| `/write-a-prd`                 | Interactive PRD creation through interview and codebase exploration |
+| `/grill-me`                    | Adversarial interview to stress-test a plan or design |
+| `/triage`                      | Bug investigation → root cause analysis → Linear issue with TDD fix plan |
+| `/discover-architecture`       | Codebase exploration for architectural improvement opportunities |
+| `/plan-refactor`               | Detailed refactor plan with tiny commits → Linear issue |
+| `/tdd`                         | Interactive TDD session with red-green-refactor loop |
+
 ### Vibe mode
 
-Want to skip the guardrails and ship fast? After agents implement and CI passes:
-
-1. Skip `/ship`
-2. Review the PR diff yourself
-3. Merge directly
+Want to skip the guardrails and ship fast? Run `/ship` and select **vibe mode** when prompted. This skips structural review, CI validation, and the completion gate — going straight from merge to PR. You review the diff yourself.
 
 The full pipeline (`/ship` → human approval → merge → tag → `/deploy`) exists to catch what you'd miss at speed. Use vibe mode for low-risk changes where you trust the agent output and CI coverage. Use the full pipeline for anything touching trust boundaries, funds, or production infrastructure.
 
