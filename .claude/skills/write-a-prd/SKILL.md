@@ -22,7 +22,11 @@ A deep module (as opposed to a shallow module) is one which encapsulates a lot o
 
 Check with the user that these modules match their expectations. Check with the user which modules they want tests written for.
 
-5. Once you have a complete understanding of the problem and solution, write the PRD using the template below. Present it inline as the output of this skill.
+5. Once you have a complete understanding of the problem and solution, write the PRD using the template below. Save the PRD to `docs/master-prd.md` in the target repo and present it inline as the output of this skill.
+
+```bash
+mkdir -p docs
+```
 
 <prd-template>
 
@@ -80,4 +84,4 @@ Any further notes about the feature.
 
 ## Next step
 
-Run `/kickoff` with this PRD to begin planning.
+The PRD has been saved to `docs/master-prd.md`. Run `/kickoff` with this PRD to begin planning.
