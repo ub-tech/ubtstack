@@ -125,11 +125,14 @@ Iterate until approved.
 
 ```bash
 mkdir -p .claude
+mkdir -p docs
 ```
 
 Write the approved brief to `.claude/architecture-brief.md`.
 
-Output: **"Architecture brief created at .claude/architecture-brief.md. This will be used as context for all future /kickoff sessions."**
+Also write a copy to `docs/architecture-one-pager.md` — this is the publishable architecture one-pager for the `docs/` directory.
+
+Output: **"Architecture brief created at .claude/architecture-brief.md and docs/architecture-one-pager.md. This will be used as context for all future /kickoff sessions."**
 
 ## Important Rules
 
