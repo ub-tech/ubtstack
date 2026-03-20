@@ -60,9 +60,18 @@ If there are merge conflicts that can't be auto-resolved, **STOP** and show them
 
 ## Step 3: Run CI tests
 
-Run the CI-stage test commands (fast, deterministic):
+Run the CI-stage test commands (fast, deterministic).
+
+**CI command resolution (in priority order):**
+1. Read `REPO_<ALIAS>_CI_COMMANDS` from `.env` (where `<ALIAS>` is the repo alias for this target repo — check the directory name or `DEFAULT_REPO`)
+2. Fall back to the test commands in the ticket's traceability matrix (from the planning manifest)
+3. Fall back to `cargo build && cargo test && cargo clippy -- -D warnings`
+
+To resolve the repo alias: derive it from the current working directory name, or read `DEFAULT_REPO` from `.env`.
 
 ```bash
+# Example: if REPO_BACKEND_CI_COMMANDS="cargo build && cargo test && cargo clippy -- -D warnings"
+# run that. Otherwise fall back to defaults:
 cargo build 2>&1
 cargo test 2>&1
 cargo clippy -- -D warnings 2>&1
@@ -152,7 +161,7 @@ ATTESTATION=".claude/state/attestation-${TICKET_ID}-CI.json"
 
 If CI attestation exists:
 - Verify GPG signature is valid
-- Verify operator matches `APPROVAL_REQUIRED_FROM`
+- Verify operator matches `APPROVAL_REQUIRED_FROM` (resolve per-repo: check `REPO_<ALIAS>_APPROVAL_REQUIRED_FROM` first, fall back to global `APPROVAL_REQUIRED_FROM`)
 - Verify `git_ref` matches the current branch HEAD
 - Report status in review output
 
@@ -250,6 +259,7 @@ gh pr create --title "<type>: <summary>" --body "$(cat <<'EOF'
 ## Planning Manifest
 - Feature: <feature_id>
 - Ticket: <ticket_id>
+- Repo: <repo alias from ticket, if multi-repo>
 
 ## Structural Review Summary
 <findings from Step 4, or "No issues found.">
@@ -313,7 +323,7 @@ Ticket <ID> is ready for Human Review.
 Recommended Linear transition: In Progress -> Human Review
 ```
 
-**Agents do not merge. Only the approver designated by `APPROVAL_REQUIRED_FROM` in `.env` can approve and merge.**
+**Agents do not merge. Only the approver designated by `APPROVAL_REQUIRED_FROM` (or `REPO_<ALIAS>_APPROVAL_REQUIRED_FROM`) in `.env` can approve and merge.**
 
 ---
 

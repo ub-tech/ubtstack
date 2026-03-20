@@ -17,10 +17,16 @@ Review this plan thoroughly before making any code changes. For every issue or r
 
 ## Auto-discovery
 
-Before starting, check `.env` for codebase context paths and scan them:
-- `ARCHITECTURE_DOCS_PATH` — architecture notes, system design docs relevant to this change
-- `EXISTING_SPECS_PATH` — existing specs that may constrain implementation
-- `TARGET_REPO_URL` — the repo being modified (clone or inspect for existing patterns)
+Before starting, check `.env` for codebase context paths and scan them. If working in a multi-repo setup, resolve per-repo paths first:
+
+1. Determine the repo alias (from the current working directory name, `--repo` flag, or `DEFAULT_REPO`)
+2. Read `REPO_<ALIAS>_ARCHITECTURE_DOCS_PATH`, `REPO_<ALIAS>_EXISTING_SPECS_PATH`, `REPO_<ALIAS>_URL`
+3. Fall back to global `ARCHITECTURE_DOCS_PATH`, `EXISTING_SPECS_PATH`, `TARGET_REPO_URL`
+
+Scan the resolved paths:
+- Architecture docs path — architecture notes, system design docs relevant to this change
+- Existing specs path — existing specs that may constrain implementation
+- Repo URL — the repo being modified (clone or inspect for existing patterns)
 
 Cross-reference discovered docs with the CEO review output. Flag any architectural constraints or existing specs that the plan must comply with.
 

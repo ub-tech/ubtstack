@@ -47,10 +47,16 @@ This command may start from any combination of:
 
 ## Auto-discovery
 
-Before starting, check `.env` for codebase context paths and scan them for relevant docs:
-- `PRD_DOCS_PATH` — PRDs, feature briefs, product specs
-- `ARCHITECTURE_DOCS_PATH` — architecture notes, system design memos
-- `EXISTING_SPECS_PATH` — existing specs that may constrain this work
+Before starting, check `.env` for codebase context paths and scan them for relevant docs. If working in a multi-repo setup, resolve per-repo paths first:
+
+1. Determine the repo alias (from the current working directory name, `--repo` flag, or `DEFAULT_REPO`)
+2. Read `REPO_<ALIAS>_PRD_DOCS_PATH`, `REPO_<ALIAS>_ARCHITECTURE_DOCS_PATH`, `REPO_<ALIAS>_EXISTING_SPECS_PATH`
+3. Fall back to global `PRD_DOCS_PATH`, `ARCHITECTURE_DOCS_PATH`, `EXISTING_SPECS_PATH`
+
+Scan the resolved paths:
+- PRD docs path — PRDs, feature briefs, product specs
+- Architecture docs path — architecture notes, system design memos
+- Existing specs path — existing specs that may constrain this work
 
 List discovered docs and ask the user which are relevant to this review. This replaces the need to manually specify every input.
 

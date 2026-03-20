@@ -3,6 +3,17 @@
 
 Run the full sandwich workflow while preserving the original repo shell.
 
+## Multi-repo support
+
+ubtstack supports multiple target repos. If your `.env` has `REPO_<ALIAS>_URL` vars, the planning pipeline is multi-repo aware:
+
+- Each ticket's `repo` field must match a registered alias
+- Per-repo config (CI commands, approval, docs paths) is resolved via `REPO_<ALIAS>_<VAR>`
+- Symphony hooks resolve the correct repo URL and directory name per ticket
+- `/ship` uses per-repo CI commands and approval config
+
+If only `TARGET_REPO_URL` is set (no `REPO_*_URL` vars), everything works as before in single-repo mode.
+
 ## Phase 0 — Prerequisites
 
 Before anything else, check for the two required anchor documents and the docs directory:
