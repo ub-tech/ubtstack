@@ -21,6 +21,40 @@ If it exists and has content, ask: **"A product brief already exists. Do you wan
 
 If the user wants to replace it, continue. Otherwise, stop.
 
+## Step 1.5: Check for existing PRD
+
+Ask: **"Do you have an existing detailed PRD (Product Requirements Document) for this product? This could be a Google Doc, Notion page, markdown file, or any other format."**
+
+Use AskUserQuestion:
+1. **Yes — I'll paste it or provide a file path** — User has a detailed PRD ready to ingest
+2. **No — we'll build from scratch** — Skip to Step 2
+
+If the user has an existing PRD:
+1. Accept the PRD content (pasted text, file path, or URL)
+2. Read and confirm understanding: **"Here's my summary of the PRD. Is this accurate?"**
+3. Save to `docs/master-prd.md`:
+
+```bash
+mkdir -p docs
+```
+
+Write the PRD content to `docs/master-prd.md` with a header:
+
+```markdown
+# Master PRD
+
+> Ingested on [today's date]. Source: [user-provided source description].
+> This is the canonical detailed PRD. The product one-pager at `.claude/product-brief.md` is derived from this document.
+
+---
+
+[PRD content here]
+```
+
+Tell the user: **"PRD saved to docs/master-prd.md. I'll use this as context to pre-fill the product brief interview — you'll just need to confirm or correct each section."**
+
+When continuing to Step 2, use the PRD to pre-fill answers. Present each question with a proposed answer from the PRD and ask the user to confirm or correct rather than starting from scratch.
+
 ## Step 2: Interview — Problem & Users
 
 Ask these questions one at a time using AskUserQuestion. Wait for each answer before proceeding.
@@ -83,11 +117,14 @@ Iterate until approved.
 
 ```bash
 mkdir -p .claude
+mkdir -p docs
 ```
 
 Write the approved brief to `.claude/product-brief.md`.
 
-Output: **"Product brief created at .claude/product-brief.md. This will be used as context for all future /kickoff sessions."**
+Also write a copy to `docs/product-one-pager.md` — this is the publishable product one-pager for the `docs/` directory.
+
+Output: **"Product brief created at .claude/product-brief.md and docs/product-one-pager.md. This will be used as context for all future /kickoff sessions."**
 
 ## Important Rules
 

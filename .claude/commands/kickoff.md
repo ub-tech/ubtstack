@@ -5,7 +5,19 @@ Run the full sandwich workflow while preserving the original repo shell.
 
 ## Phase 0 — Prerequisites
 
-Before anything else, check for the two required anchor documents:
+Before anything else, check for the two required anchor documents and the docs directory:
+
+### Docs Directory Check
+```bash
+ls docs/ 2>/dev/null
+```
+
+If the `docs/` directory does not exist, create it:
+```bash
+mkdir -p docs
+```
+
+Note any existing documents found (master-prd.md, product-one-pager.md, architecture-one-pager.md, master-test-matrix.md). These will be used as context.
 
 ### Product Brief Check
 ```bash
@@ -27,6 +39,13 @@ If the architecture brief does not exist or is empty:
 - Run `/create-architecture-brief`
 - After it completes, resume from Phase 0.
 
+### Master PRD Check
+```bash
+cat docs/master-prd.md 2>/dev/null | head -5
+```
+
+If a master PRD exists in `docs/master-prd.md`, note it for intake. If not, this is fine — it can be created during Phase 1 via `/write-a-prd` or ingested during `/create-product-brief`.
+
 ## Phase 0.5 — Intake & Product Anchor
 
 ### Read the product brief
@@ -43,11 +62,13 @@ Read `.claude/architecture-brief.md` in full. Note the PROC-xxx, IF-xxx, and COM
 
 ### Intake
 Accept the strongest available planning inputs:
-- PRD
+- PRD (check `docs/master-prd.md` first — if it exists, load it as the primary PRD input)
 - architecture guidance
 - feature brief
 - bug report / incident
 - user prompt
+
+If no PRD exists yet and this is a new feature, it will be created during Phase 1 (Chain 1 or Chain 2).
 
 If both a PRD and architecture guidance are present:
 - treat the PRD as the product contract
@@ -148,9 +169,14 @@ The engineering step converts the approved product direction into:
 - components impacted (COMP-xxx with change detail + test plan)
 - engineering success criteria (ENG-xxx)
 - dependency graph
-- test traceability matrix (planned)
+- test traceability matrix (planned) — also saved to `docs/master-test-matrix.md`
 - constraints (appended to CEO constraints)
 - risks (SR-xxx linked to AR-xxx)
+
+After the engineering review completes, save the test traceability matrix to `docs/master-test-matrix.md`:
+```bash
+mkdir -p docs
+```
 
 ## Phase 4 — Manifest
 
