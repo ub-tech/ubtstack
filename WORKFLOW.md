@@ -19,14 +19,37 @@ workspace:
   root: ~/code/workspaces
 hooks:
   after_create: |
-    git clone --depth 1 $TARGET_REPO_URL your-target-repo
+    set -e
+    ISSUE_ID="$(basename "$(pwd)")"
     git clone --depth 1 $UBT_STACK_URL ubtstack
     (cd ubtstack && npm install)
-    mkdir -p your-target-repo/.claude/state
+    # Resolve target repo from ticket-repo-map.json (multi-repo) or fall back to TARGET_REPO_URL (legacy)
+    TARGET_REPO_DIR=""
+    TARGET_REPO_CLONE_URL=""
+    if [ -f ubtstack/.claude/state/ticket-repo-map.json ]; then
+      REPO_ALIAS=$(node -e "const m=JSON.parse(require('fs').readFileSync('ubtstack/.claude/state/ticket-repo-map.json','utf8')); const e=m['$ISSUE_ID']; if(e){console.log(e.repo)}" 2>/dev/null || true)
+      REPO_URL=$(node -e "const m=JSON.parse(require('fs').readFileSync('ubtstack/.claude/state/ticket-repo-map.json','utf8')); const e=m['$ISSUE_ID']; if(e){console.log(e.url)}" 2>/dev/null || true)
+      if [ -n "$REPO_ALIAS" ] && [ -n "$REPO_URL" ]; then
+        TARGET_REPO_DIR="$REPO_ALIAS"
+        TARGET_REPO_CLONE_URL="$REPO_URL"
+      fi
+    fi
+    if [ -z "$TARGET_REPO_DIR" ]; then
+      TARGET_REPO_DIR="your-target-repo"
+      TARGET_REPO_CLONE_URL="$TARGET_REPO_URL"
+    fi
+    git clone --depth 1 "$TARGET_REPO_CLONE_URL" "$TARGET_REPO_DIR"
+    mkdir -p "$TARGET_REPO_DIR/.claude/state"
+    echo "$TARGET_REPO_DIR" > .target-repo-dir
   before_run: |
     set -e
-    # Derive issue identifier from workspace directory name (e.g. ~/code/workspaces/ENG-249 → ENG-249)
     ISSUE_ID="$(basename "$(pwd)")"
+    # Read target repo directory name from sentinel
+    if [ -f .target-repo-dir ]; then
+      TARGET_REPO_DIR="$(cat .target-repo-dir)"
+    else
+      TARGET_REPO_DIR="your-target-repo"
+    fi
     # Ensure ubtstack exists
     if [ ! -d ubtstack/.git ]; then
       rm -rf ubtstack
@@ -36,12 +59,18 @@ hooks:
       (cd ubtstack && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- scripts/ .claude/templates/)
     fi
     # Ensure target repo is a valid git clone
-    if [ ! -d your-target-repo/.git ]; then
-      rm -rf your-target-repo
-      git clone $TARGET_REPO_URL your-target-repo
+    if [ ! -d "$TARGET_REPO_DIR/.git" ]; then
+      # Resolve clone URL
+      TARGET_REPO_CLONE_URL="$TARGET_REPO_URL"
+      if [ -f ubtstack/.claude/state/ticket-repo-map.json ]; then
+        RESOLVED_URL=$(node -e "const m=JSON.parse(require('fs').readFileSync('ubtstack/.claude/state/ticket-repo-map.json','utf8')); const e=m['$ISSUE_ID']; if(e){console.log(e.url)}" 2>/dev/null || true)
+        [ -n "$RESOLVED_URL" ] && TARGET_REPO_CLONE_URL="$RESOLVED_URL"
+      fi
+      rm -rf "$TARGET_REPO_DIR"
+      git clone "$TARGET_REPO_CLONE_URL" "$TARGET_REPO_DIR"
     fi
     # Pull latest state and set up branch
-    cd your-target-repo
+    cd "$TARGET_REPO_DIR"
     git fetch origin
     git checkout FETCH_HEAD -- .claude/state/planning-manifest.json 2>/dev/null || true
     BASE="symphony/$ISSUE_ID"
@@ -54,7 +83,13 @@ hooks:
     fi
     git checkout -B "$BRANCH" origin/main
   before_remove: |
-    cd your-target-repo 2>/dev/null || exit 0
+    # Read target repo directory name from sentinel
+    if [ -f .target-repo-dir ]; then
+      TARGET_REPO_DIR="$(cat .target-repo-dir)"
+    else
+      TARGET_REPO_DIR="your-target-repo"
+    fi
+    cd "$TARGET_REPO_DIR" 2>/dev/null || exit 0
     branch=$(git branch --show-current 2>/dev/null)
     if [ -n "$branch" ] && command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
       gh pr list --head "$branch" --state open --json number --jq '.[].number' | while read -r pr; do
@@ -84,11 +119,16 @@ Stay within scope, preserve existing architecture, and escalate ambiguity instea
 
 The workspace contains two repos side by side:
 
-- `your-target-repo/` — the implementation repo. All code changes, git operations, and PRs happen here. State files (manifests, review packets) also live here under `.claude/state/`.
+- `$TARGET_REPO_DIR/` — the implementation repo (directory name matches the repo alias, e.g. `backend/`, `frontend/`; legacy single-repo uses `your-target-repo/`). All code changes, git operations, and PRs happen here. State files (manifests, review packets) also live here under `.claude/state/`.
 - `ubtstack/` — the SDLC tooling repo. Contains scripts and templates only. Do NOT modify files in this repo.
 
-All relative paths in ticket Allowed Paths are relative to `your-target-repo/`.
-Run build and test commands from inside `your-target-repo/`.
+The `.target-repo-dir` sentinel file at the workspace root contains the directory name. Read it to resolve `$TARGET_REPO_DIR`:
+```bash
+TARGET_REPO_DIR="$(cat .target-repo-dir 2>/dev/null || echo your-target-repo)"
+```
+
+All relative paths in ticket Allowed Paths are relative to `$TARGET_REPO_DIR/`.
+Run build and test commands from inside `$TARGET_REPO_DIR/`.
 Run `npx tsx ubtstack/scripts/...` commands from the workspace root.
 
 ## Phase 0 — Workspace verification (ALWAYS run first)
@@ -96,9 +136,12 @@ Run `npx tsx ubtstack/scripts/...` commands from the workspace root.
 Before doing anything else, verify the workspace layout is correct. Run these commands from the workspace root:
 
 ```bash
+# Resolve target repo directory name
+TARGET_REPO_DIR="$(cat .target-repo-dir 2>/dev/null || echo your-target-repo)"
+
 # Clone target repo if missing
-if [ ! -d your-target-repo ]; then
-  git clone --depth 1 $TARGET_REPO_URL your-target-repo
+if [ ! -d "$TARGET_REPO_DIR" ]; then
+  git clone --depth 1 $TARGET_REPO_URL "$TARGET_REPO_DIR"
 fi
 
 # Ensure ubtstack is a valid git clone (not a partial/broken directory)
@@ -112,8 +155,8 @@ fi
 (cd ubtstack && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- scripts/ .claude/templates/)
 
 # Pull latest state from target repo
-mkdir -p your-target-repo/.claude/state
-(cd your-target-repo && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- .claude/state/planning-manifest.json 2>/dev/null || true)
+mkdir -p "$TARGET_REPO_DIR/.claude/state"
+(cd "$TARGET_REPO_DIR" && git fetch origin main --depth 1 && git checkout FETCH_HEAD -- .claude/state/planning-manifest.json 2>/dev/null || true)
 ```
 
 **Do NOT proceed to Phase 1 until `ubtstack/scripts/validate-review-packet.ts` exists.** If it does not exist after running the above, transition the ticket to Rework with the error.
@@ -138,7 +181,7 @@ The Linear issue body contains everything you need:
 
 ### Phase 2 — Implement
 
-All code changes go in `your-target-repo/`.
+All code changes go in `$TARGET_REPO_DIR/`.
 
 1. Extend current patterns where reasonable; do not rewrite unrelated architecture
 2. Satisfy all acceptance criteria listed in the ticket
@@ -192,7 +235,7 @@ Generate and run all required test categories from the ticket. Agents run **CI-s
 2. **Conditional test categories** — implement if CI-stage applicable, or document why skipped
 3. Include happy-path, boundary, error-path, and regression coverage
 
-Run the test commands listed in the ticket from inside `your-target-repo/`.
+Run the test commands listed in the ticket from inside `$TARGET_REPO_DIR/`.
 
 #### tests_passed semantics
 
@@ -212,8 +255,8 @@ Run the review-packet validator to check your work:
 
 ```bash
 npx tsx ubtstack/scripts/validate-review-packet.ts \
-  your-target-repo/.claude/state/planning-manifest.json \
-  your-target-repo/.claude/state/review-packet-$ISSUE_ID.json
+  $TARGET_REPO_DIR/.claude/state/planning-manifest.json \
+  $TARGET_REPO_DIR/.claude/state/review-packet-$ISSUE_ID.json
 ```
 
 If validation fails, fix the gaps before proceeding.
@@ -221,10 +264,10 @@ If validation fails, fix the gaps before proceeding.
 ### Phase 5 — PR
 
 Open a PR **before** writing the review packet. The completion gate requires a PR URL.
-Run git commands from inside `your-target-repo/`.
+Run git commands from inside `$TARGET_REPO_DIR/`.
 
 ```bash
-cd your-target-repo
+cd $TARGET_REPO_DIR
 BRANCH=$(git branch --show-current)
 git push -u origin "$BRANCH"
 gh pr create \
@@ -238,7 +281,7 @@ Record the PR URL for the review packet.
 
 ### Phase 6 — Review packet
 
-Write `your-target-repo/.claude/state/review-packet-$ISSUE_ID.json` using this structure (where `$ISSUE_ID` is the Linear issue identifier, e.g. `ENG-201`).
+Write `$TARGET_REPO_DIR/.claude/state/review-packet-$ISSUE_ID.json` using this structure (where `$ISSUE_ID` is the Linear issue identifier, e.g. `ENG-201`).
 The `branch` and `pr` fields are **required** — the completion gate will reject packets without them.
 
 QA uses a stage-based model. Each stage (CI and CD) owns its tests and reports pass/fail independently:
@@ -292,8 +335,8 @@ Run the completion gate:
 
 ```bash
 npx tsx ubtstack/scripts/symphony-complete-ticket.ts \
-  your-target-repo/.claude/state/planning-manifest.json \
-  your-target-repo/.claude/state/review-packet-$ISSUE_IDENTIFIER.json \
+  $TARGET_REPO_DIR/.claude/state/planning-manifest.json \
+  $TARGET_REPO_DIR/.claude/state/review-packet-$ISSUE_IDENTIFIER.json \
   --ticket "$ISSUE_IDENTIFIER" \
   --current-status "In Progress" \
   --mode complete
