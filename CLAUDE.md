@@ -36,6 +36,20 @@ The engineering planning step remains responsible for:
 Architecture guidance can shape the first step, but it does **not** collapse CEO review and engineering review into a single step.
 
 
+## Multi-repo configuration
+
+ubtstack supports multiple target repos from a single installation. Configuration uses `REPO_<ALIAS>_<VAR>` patterns in `.env`:
+
+- `REPO_<ALIAS>_URL` — Git clone URL
+- `REPO_<ALIAS>_CI_COMMANDS` — CI commands for `/ship`
+- `REPO_<ALIAS>_APPROVAL_REQUIRED_FROM` — Per-repo PR approver
+- `REPO_<ALIAS>_ARCHITECTURE_DOCS_PATH`, `_PRD_DOCS_PATH`, `_EXISTING_SPECS_PATH` — Per-repo doc paths
+- `DEFAULT_REPO` — Default alias when no `--repo` flag is given
+
+Each ticket's `repo` field must match a registered alias. `ticket-repo-map.json` maps ticket IDs to repo aliases for Symphony hooks.
+
+**Backward compat:** If only `TARGET_REPO_URL` is set (no `REPO_*_URL` vars), it is auto-registered as a single-entry registry.
+
 ## Existing code context
 
 This workflow is intended to work on both greenfield and pre-existing codebases.
