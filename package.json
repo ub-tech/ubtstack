@@ -9,7 +9,8 @@
     "symphony-complete-ticket": "tsx scripts/symphony-complete-ticket.ts",
     "resolve-transition": "tsx scripts/resolve-linear-transition.ts",
     "linear-discover": "tsx scripts/linear-discover-team.ts",
-    "start-symphony": "./bin/start-symphony.sh"
+    "start-symphony": "./bin/start-symphony.sh",
+    "test:registry": "tsx scripts/repo-registry.test.ts"
   },
   "dependencies": {
     "@linear/sdk": "^29.0.0"
