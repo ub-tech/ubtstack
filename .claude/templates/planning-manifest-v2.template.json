@@ -4,6 +4,17 @@
   "title": "Example feature",
   "summary": "One-paragraph summary of the feature, grounded in the product brief context.",
 
+  "target_repos": {
+    "_comment": "Repos involved in this feature. Each alias must match a registered repo in .env (REPO_<ALIAS>_URL). For single-repo setups, this may contain one entry matching TARGET_REPO_URL.",
+    "repos": [
+      {
+        "alias": "repo-name",
+        "url": "https://github.com/your-org/your-repo.git",
+        "ci_commands": "cargo build && cargo test && cargo clippy -- -D warnings"
+      }
+    ]
+  },
+
   "source": {
     "origin_commands": ["/plan-ceo-review", "/plan-eng-review"],
     "requested_by": "user",

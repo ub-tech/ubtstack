@@ -116,8 +116,12 @@ Agent workspaces (created by Symphony at runtime) follow the same layout:
 ```
 ~/code/workspaces/<ticket-id>/
 ├── ubtstack/             # Cloned automatically by after_create hook
-└── your-target-repo/      # Cloned automatically, checked out to symphony/<ticket-id>
+├── backend/              # Multi-repo: directory name = repo alias
+├── frontend/             # Each ticket clones only its assigned repo
+└── .target-repo-dir      # Sentinel file containing the directory name
 ```
+
+In single-repo (legacy) mode, the directory is `your-target-repo/`. In multi-repo mode, the `after_create` hook reads `ticket-repo-map.json` to resolve the correct repo alias and clone URL.
 
 Agents only modify the target repo. ubtstack is read-only tooling.
 
@@ -206,10 +210,41 @@ See `.env.example`. The essentials:
 | Variable | Required |
 |----------|----------|
 | `LINEAR_API_KEY` | Yes |
-| `APPROVAL_REQUIRED_FROM` | Yes — GitHub handle for PR approval |
-| `TARGET_REPO_URL` | Yes — repo clone URL for Symphony |
+| `APPROVAL_REQUIRED_FROM` | Yes — GitHub handle for PR approval (global fallback) |
+| `TARGET_REPO_URL` | Yes (single-repo) — repo clone URL for Symphony |
 | `UBTSTACK_PATH` | Yes — local path to ubtstack tooling repo (default: `../ubtstack`) |
 | `LINEAR_PROJECT_SLUG` | Yes — Symphony project targeting |
+
+### Multi-repo configuration
+
+To serve multiple target repos from a single ubtstack installation, use `REPO_<ALIAS>_<VAR>` instead of the global vars:
+
+```bash
+REPO_BACKEND_URL=https://github.com/org/backend.git
+REPO_BACKEND_APPROVAL_REQUIRED_FROM=kyle
+REPO_BACKEND_CI_COMMANDS=cargo build && cargo test && cargo clippy -- -D warnings
+REPO_BACKEND_ARCHITECTURE_DOCS_PATH=docs/technical
+
+REPO_FRONTEND_URL=https://github.com/org/frontend.git
+REPO_FRONTEND_CI_COMMANDS=npm run build && npm test && npm run lint
+
+DEFAULT_REPO=backend
+```
+
+| Variable pattern | Purpose |
+|------------------|---------|
+| `REPO_<ALIAS>_URL` | Git clone URL for this repo |
+| `REPO_<ALIAS>_APPROVAL_REQUIRED_FROM` | GitHub handle for PR approval (overrides global) |
+| `REPO_<ALIAS>_CI_COMMANDS` | CI commands for `/ship` (overrides hardcoded defaults) |
+| `REPO_<ALIAS>_ARCHITECTURE_DOCS_PATH` | Architecture docs path (overrides global) |
+| `REPO_<ALIAS>_PRD_DOCS_PATH` | PRD docs path (overrides global) |
+| `REPO_<ALIAS>_EXISTING_SPECS_PATH` | Existing specs path (overrides global) |
+| `REPO_<ALIAS>_STAGING_URL` | Staging URL (overrides global) |
+| `DEFAULT_REPO` | Default alias when no `--repo` flag is provided |
+
+Per-repo vars fall back to global vars if not set. Run `npx tsx scripts/repo-registry.ts` to inspect the resolved registry.
+
+**Backward compat:** If only `TARGET_REPO_URL` is set (no `REPO_*_URL` vars), it is auto-registered as a single-entry registry.
 
 ## Contributing
 

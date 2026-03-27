@@ -19,6 +19,7 @@
 import fs from 'fs';
 import path from 'path';
 import { createLinearClient, findTeam, findStateId } from './linear-client.ts';
+import { loadRepoRegistry, listAliases, type RepoConfig } from './repo-registry.ts';
 
 type ChangeClassification = {
   domain_logic_changed?: boolean;
@@ -168,42 +169,68 @@ if (executeMode && !teamKey) {
 
 const manifest = JSON.parse(fs.readFileSync(path.resolve(manifestPath), 'utf8')) as Manifest;
 
-// --- Allowed-paths overlap detection ---
+// --- Repo registry validation ---
+
+const repoRegistry = loadRepoRegistry();
+const registeredAliases = listAliases(repoRegistry);
+
+if (registeredAliases.length > 0) {
+  const ticketRepos = [...new Set(manifest.tickets.map((t) => t.repo).filter(Boolean))];
+  const unknown = ticketRepos.filter((r) => !registeredAliases.includes(r.toLowerCase()));
+  if (unknown.length > 0) {
+    console.error(`\n⚠  UNKNOWN REPO ALIAS${unknown.length > 1 ? 'ES' : ''}: ${unknown.join(', ')}`);
+    console.error(`   Registered aliases: ${registeredAliases.join(', ')}`);
+    console.error('   Each ticket.repo must match a registered alias in .env (REPO_<ALIAS>_URL).');
+    console.error('   Proceeding anyway...\n');
+  }
+}
+
+// --- Allowed-paths overlap detection (per-repo) ---
 
 function detectAllowedPathOverlaps(tickets: Ticket[]): Array<{ ticketA: string; ticketB: string; overlapping: string[] }> {
   const overlaps: Array<{ ticketA: string; ticketB: string; overlapping: string[] }> = [];
 
-  for (let i = 0; i < tickets.length; i++) {
-    const pathsA = tickets[i].allowed_paths ?? [];
-    if (pathsA.length === 0) continue;
+  // Group tickets by repo — only compare within the same repo
+  const byRepo = new Map<string, Ticket[]>();
+  for (const ticket of tickets) {
+    const repo = ticket.repo || '_default_';
+    if (!byRepo.has(repo)) byRepo.set(repo, []);
+    byRepo.get(repo)!.push(ticket);
+  }
 
-    for (let j = i + 1; j < tickets.length; j++) {
-      const pathsB = tickets[j].allowed_paths ?? [];
-      if (pathsB.length === 0) continue;
+  for (const [, repoTickets] of byRepo) {
+    for (let i = 0; i < repoTickets.length; i++) {
+      const pathsA = repoTickets[i].allowed_paths ?? [];
+      if (pathsA.length === 0) continue;
 
-      const shared: string[] = [];
-      for (const a of pathsA) {
-        for (const b of pathsB) {
-          // Exact match
-          if (a === b) {
-            shared.push(a);
-            continue;
-          }
-          // One is a parent directory of the other
-          const aNorm = a.endsWith('/') ? a : a + '/';
-          const bNorm = b.endsWith('/') ? b : b + '/';
-          if (bNorm.startsWith(aNorm) || aNorm.startsWith(bNorm)) {
-            shared.push(`${a} <-> ${b}`);
+      for (let j = i + 1; j < repoTickets.length; j++) {
+        const pathsB = repoTickets[j].allowed_paths ?? [];
+        if (pathsB.length === 0) continue;
+
+        const shared: string[] = [];
+        for (const a of pathsA) {
+          for (const b of pathsB) {
+            // Exact match
+            if (a === b) {
+              shared.push(a);
+              continue;
+            }
+            // One is a parent directory of the other
+            const aNorm = a.endsWith('/') ? a : a + '/';
+            const bNorm = b.endsWith('/') ? b : b + '/';
+            if (bNorm.startsWith(aNorm) || aNorm.startsWith(bNorm)) {
+              shared.push(`${a} <-> ${b}`);
+            }
           }
         }
-      }
 
-      if (shared.length > 0) {
-        overlaps.push({
-          ticketA: tickets[i].id,
-          ticketB: tickets[j].id,
-          overlapping: [...new Set(shared)]
-        });
+        if (shared.length > 0) {
+          overlaps.push({
+            ticketA: repoTickets[i].id,
+            ticketB: repoTickets[j].id,
+            overlapping: [...new Set(shared)]
+          });
+        }
       }
     }
   }
@@ -213,7 +240,7 @@ function detectAllowedPathOverlaps(tickets: Ticket[]): Array<{ ticketA: string; 
 
 const overlaps = detectAllowedPathOverlaps(manifest.tickets);
 if (overlaps.length > 0) {
-  console.error('\n⚠  ALLOWED_PATHS OVERLAP DETECTED');
+  console.error('\n⚠  ALLOWED_PATHS OVERLAP DETECTED (within same repo)');
   console.error('   Tickets with overlapping paths risk merge conflicts when agents work in parallel.\n');
   for (const o of overlaps) {
     console.error(`   ${o.ticketA} ↔ ${o.ticketB}`);
@@ -489,6 +516,23 @@ if (!executeMode) {
   for (const p of businessPayloads) {
     console.log(JSON.stringify({ type: 'business', team: p.task.team, issue: p.issue }, null, 2));
   }
+
+  // Write ticket-repo-map.json even in dry-run (useful for local testing)
+  const manifestDir = path.dirname(path.resolve(manifestPath));
+  const dryRunMapPath = path.join(manifestDir, 'ticket-repo-map.json');
+  const dryRunMap: Record<string, { repo: string; url: string }> = {};
+  for (const ticket of manifest.tickets) {
+    const repoAlias = ticket.repo || '';
+    const repoConfig = repoRegistry.get(repoAlias.toLowerCase());
+    dryRunMap[ticket.id] = {
+      repo: repoAlias,
+      url: repoConfig?.url ?? ''
+    };
+  }
+  fs.mkdirSync(path.dirname(dryRunMapPath), { recursive: true });
+  fs.writeFileSync(dryRunMapPath, JSON.stringify(dryRunMap, null, 2) + '\n', 'utf8');
+  console.error(`\nTicket-repo map written: ${dryRunMapPath}`);
+
   console.error('\nDry-run complete. Use --execute --team <key> to create issues in Linear.');
   if (businessPayloads.length > 0) {
     console.error(`Business tasks will be created in their respective teams (${[...new Set(businessPayloads.map((p) => p.task.team))].join(', ')}).`);
@@ -680,6 +724,26 @@ if (manifestUpdated) {
   fs.writeFileSync(path.resolve(manifestPath), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   console.log(`\nManifest updated: ticket IDs now match Linear identifiers.`);
 }
+
+// Write ticket-repo-map.json for Symphony hooks to resolve repo aliases
+const ubtStackPath = process.env['UBTSTACK_PATH'] || path.dirname(path.resolve(manifestPath)).replace(/\/[^/]+\/\.claude\/state$/, '/../ubtstack');
+const stateDir = path.join(path.resolve(ubtStackPath), '.claude', 'state');
+fs.mkdirSync(stateDir, { recursive: true });
+
+const ticketRepoMap: Record<string, { repo: string; url: string }> = {};
+for (const ticket of manifest.tickets) {
+  const linearId = idMap.get(ticket.id) ?? ticket.id;
+  const repoAlias = ticket.repo || '';
+  const repoConfig = repoRegistry.get(repoAlias.toLowerCase());
+  ticketRepoMap[linearId] = {
+    repo: repoAlias,
+    url: repoConfig?.url ?? ''
+  };
+}
+
+const ticketRepoMapPath = path.join(stateDir, 'ticket-repo-map.json');
+fs.writeFileSync(ticketRepoMapPath, JSON.stringify(ticketRepoMap, null, 2) + '\n', 'utf8');
+console.log(`\nTicket-repo map written: ${ticketRepoMapPath}`);
 
 console.log('\nSummary:');
 console.log(JSON.stringify(createdIssues, null, 2));

@@ -13,7 +13,7 @@ Create the directory first if it doesn't exist: `mkdir -p .claude/state`
 - One feature = one manifest
 - One ticket = one TV (one behavior, one end-to-end path)
 - Tickets must include:
-  - id, title, repo, type (feature/bugfix/refactor/infrastructure/migration), priority
+  - id, title, repo (must match a registered alias in `.env` — see `REPO_<ALIAS>_URL`), type (feature/bugfix/refactor/infrastructure/migration), priority
   - depends_on (other ticket IDs in this manifest)
   - labels (format: `team:eng`, `service:PROC-xxx`, `domain:xxx`)
   - thin_vertical (TV-xxx reference from product brief)
