@@ -81,6 +81,9 @@ Present both anchors to the user: **"Here are the product and architecture ancho
 
 Display both anchor statements. **STOP.** Wait for confirmation. If the user corrects anything, update and re-confirm. Do NOT proceed until the user confirms both.
 
+### SAVE CHECKPOINT — Brief enforcement complete
+If a session state file exists at `.claude/state/session-*.json`, update: `eng_review.status: "in_progress"`, `current_phase: "eng_review"`, `current_step: "brief_enforcement_complete"`, `updated_at`.
+
 ---
 
 # PHASE 1: Interrogation
@@ -150,6 +153,9 @@ Grill-me returns the completed ledger in its canonical format. Present it to the
 
 **STOP.** The grill-me protocol handles the "Any corrections?" prompt. Do NOT proceed to Phase 2 until the user confirms the ledger.
 
+### SAVE CHECKPOINT — Interrogation complete
+If a session state file exists at `.claude/state/session-*.json`, update: `eng_review.interrogation_ledger` (full ledger), `current_step: "interrogation_complete"`, `updated_at`. Note: individual ledger entries are also saved incrementally during grill-me execution (see grill-me SKILL.md embedded mode session note).
+
 ---
 
 # PHASE 2: Analysis
@@ -166,6 +172,9 @@ Ask if the user wants one of three options:
 **Critical: If the user does not select SCOPE REDUCTION, respect that decision fully.** Your job becomes making the plan succeed, not continuing to lobby for a smaller plan. Raise scope concerns once — after that, commit to the chosen scope.
 
 **STOP.** AskUserQuestion. Recommend + WHY. Do NOT proceed until user responds.
+
+### SAVE CHECKPOINT — Scope decision made
+If a session state file exists at `.claude/state/session-*.json`, update: `eng_review.scope_decision` (the selected option), `current_step: "scope_decision_made"`, `updated_at`.
 
 ## Review Sections (after scope is agreed)
 
@@ -233,6 +242,9 @@ Rust-specific:
 
 **STOP.** AskUserQuestion individually per issue.
 
+### SAVE CHECKPOINT — Analysis sections complete
+If a session state file exists at `.claude/state/session-*.json`, update: `current_step: "analysis_complete"`, `updated_at`. This is a batch checkpoint after all 4 review sections are done.
+
 ## Hard Restrictions Finalization
 
 After completing all review sections, present any hard restrictions captured during CEO review and ask:
@@ -249,6 +261,9 @@ Use AskUserQuestion. Prompt with examples:
 - Concurrency constraints (e.g., "no new tokio::spawn without cancellation safety")
 
 All restrictions are written into `constraints` in the planning manifest. They flow into every ticket and are visible to Codex agents in the Linear issue body. The completion gate checks compliance.
+
+### SAVE CHECKPOINT — Hard restrictions finalized
+If a session state file exists at `.claude/state/session-*.json`, update: `eng_review.hard_restrictions` (all captured restrictions), `current_step: "hard_restrictions_finalized"`, `updated_at`.
 
 ## Existing code inspection
 
@@ -274,6 +289,9 @@ Present the complete output artifact (all required outputs below) to the user.
 - **D) Reject — escalate to CEO review** — Fundamental product/scope issue discovered during engineering review. Return to `/plan-ceo-review`.
 
 **Do NOT hand off to `/plan-to-linear` until the user selects option A.**
+
+### SAVE CHECKPOINT — Approval gate resolved
+If a session state file exists at `.claude/state/session-*.json`, update: `eng_review.status` (set to `"approved"` or `"rejected"`), `eng_review.approval` (the specific option selected), `eng_review.interfaces_impacted`, `eng_review.components_impacted`, `eng_review.success_criteria`, `current_step: "approval_complete"`, `updated_at`.
 
 ---
 

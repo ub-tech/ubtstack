@@ -119,6 +119,9 @@ Present to the user: **"Here's my understanding of the product anchor for this r
 
 Display the anchor statement. **STOP.** Wait for confirmation. If the user corrects anything, update and re-confirm. Do NOT proceed until the user confirms.
 
+### SAVE CHECKPOINT — Brief enforcement complete
+If a session state file exists at `.claude/state/session-*.json`, update: `ceo_review.status: "in_progress"`, `current_phase: "ceo_review"`, `current_step: "brief_enforcement_complete"`, `updated_at`.
+
 ---
 
 # PHASE 1: Interrogation
@@ -186,6 +189,9 @@ After mandatory Q1-Q4, select remaining questions based on:
 ### Post-Interrogation
 
 Grill-me returns the completed ledger in its canonical format. The grill-me protocol handles the "Any corrections?" prompt. Do NOT proceed to Phase 2 until the user confirms the ledger.
+
+### SAVE CHECKPOINT — Interrogation complete
+If a session state file exists at `.claude/state/session-*.json`, update: `ceo_review.interrogation_ledger` (full ledger), `current_step: "interrogation_complete"`, `updated_at`. Note: individual ledger entries are also saved incrementally during grill-me execution (see grill-me SKILL.md embedded mode session note).
 
 ---
 
@@ -396,6 +402,9 @@ Evaluate:
 
 **STOP.** AskUserQuestion once per issue.
 
+### SAVE CHECKPOINT — Analysis sections complete
+If a session state file exists at `.claude/state/session-*.json`, update: `current_step: "analysis_complete"`, `updated_at`. This is a batch checkpoint after all 10 review sections are done.
+
 ## Hard Restrictions Capture
 
 After completing all review sections, explicitly ask the user:
@@ -414,6 +423,9 @@ Use AskUserQuestion. Prompt with examples:
 
 Capture all restrictions verbatim. These flow into the planning manifest under `constraints` and are enforced on every ticket.
 
+### SAVE CHECKPOINT — Hard restrictions captured
+If a session state file exists at `.claude/state/session-*.json`, update: `ceo_review.hard_restrictions` (all captured restrictions), `current_step: "hard_restrictions_captured"`, `updated_at`.
+
 ---
 
 # PHASE 3: Approval Gate
@@ -428,6 +440,9 @@ Present the complete output artifact (all required outputs below) to the user.
 - **D) Reject — fundamental rethink** — Restart from Phase 1 entirely with a different framing. Full grill-me re-invocation.
 
 **Do NOT hand off to `/plan-eng-review` until the user selects option A.**
+
+### SAVE CHECKPOINT — Approval gate resolved
+If a session state file exists at `.claude/state/session-*.json`, update: `ceo_review.status` (set to `"approved"` or `"rejected"` based on selection), `ceo_review.approval` (the specific option selected), `ceo_review.session_goals`, `ceo_review.non_goals`, `ceo_review.constraints`, `current_step: "approval_complete"`, `updated_at`.
 
 ---
 

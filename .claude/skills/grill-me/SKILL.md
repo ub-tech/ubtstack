@@ -85,6 +85,14 @@ The calling skill provides a question pool, tells you which questions are mandat
 
 Grill-me owns the asking cadence, push-back decisions, ledger tracking, and exit criteria. The calling skill owns the question content, the pre-interrogation audit, and what happens with the ledger after interrogation completes.
 
+### Session State Persistence
+
+If a session state file exists at `.claude/state/session-*.json`, update the appropriate `interrogation_ledger` after each question is resolved, marked pending, or skipped. The target ledger is determined by the calling skill's context:
+- Called from `/plan-ceo-review` → update `ceo_review.interrogation_ledger`
+- Called from `/plan-eng-review` → update `eng_review.interrogation_ledger`
+
+Each update appends or updates the ledger entry for the current question and sets `updated_at` to the current timestamp. This ensures that if the session is interrupted mid-interrogation, resolved questions are preserved and the session can resume from the next unresolved question.
+
 ### Execution flow
 
 1. Present pre-interrogation findings if provided.

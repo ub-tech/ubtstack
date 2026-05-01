@@ -1,0 +1,13 @@
+{
+  "_comment": "Optional manifest for external skill repos. Place at repo root as skillpack.json for richer discovery.",
+  "name": "<pack-name>",
+  "description": "<human-readable description of the skill pack>",
+  "version": "1.0.0",
+  "skills_dir": "skills",
+  "groups": [
+    {
+      "name": "<group display name>",
+      "skills": ["<skill-dir-name-1>", "<skill-dir-name-2>"]
+    }
+  ]
+}

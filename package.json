@@ -9,6 +9,8 @@
     "symphony-complete-ticket": "tsx scripts/symphony-complete-ticket.ts",
     "resolve-transition": "tsx scripts/resolve-linear-transition.ts",
     "linear-discover": "tsx scripts/linear-discover-team.ts",
+    "validate-session": "tsx scripts/validate-session-state.ts",
+    "discover-packs": "tsx scripts/discover-skill-packs.ts",
     "start-symphony": "./bin/start-symphony.sh"
   },
   "dependencies": {

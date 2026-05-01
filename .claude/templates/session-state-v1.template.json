@@ -1,0 +1,79 @@
+{
+  "_comment": "Session state schema reference — v1.0. Used by kickoff.md for session persistence.",
+  "session_version": "1.0",
+  "session_id": "<YYYYMMDD-HHmmss-hex8>",
+  "created_at": "<ISO 8601>",
+  "updated_at": "<ISO 8601>",
+  "mode": "<spec_only | pipeline_only | full>",
+  "current_phase": "<session_detection | mode_selection | prerequisites | intake | skill_composition | scope_mode_selection | ceo_review | eng_review | manifest | handoff | review_reentry>",
+  "current_step": "<phase-specific step identifier>",
+  "work_type": "<1 | 2 | 3 | 4 | 5 | null>",
+  "scope_mode": "<SCOPE_EXPANSION | SELECTIVE_EXPANSION | HOLD_SCOPE | SCOPE_REDUCTION | null>",
+  "product_synopsis": "<confirmed product synopsis string | null>",
+  "seed_artifacts": [
+    {
+      "path": ".claude/seeds/marketing-strategy.md",
+      "label": "marketing-strategy"
+    }
+  ],
+  "briefs_skipped": false,
+  "activated_packs": [
+    {
+      "name": "<pack-name>",
+      "path": "<relative path to pack>",
+      "description": "<pack description>"
+    }
+  ],
+  "pipeline": [
+    {
+      "id": "<phase-id>",
+      "label": "<display label>",
+      "type": "<builtin | external>",
+      "skill_path": "<path to SKILL.md — external only>",
+      "pack": "<source pack name — external only>",
+      "replaces": "<id of replaced builtin phase — optional>"
+    }
+  ],
+  "external_phase_state": {
+    "_comment": "Checkpoint data for external phases. Keyed by phase id."
+  },
+  "ceo_review": {
+    "status": "<not_started | in_progress | completed | approved | rejected>",
+    "interrogation_ledger": [
+      {
+        "question_id": "Q1",
+        "summary": "<one-line summary of specific, falsifiable answer>",
+        "status": "<resolved | pending | skipped>",
+        "risk": "<specific risk noted — only for pending>",
+        "source": "<codebase exploration | brief | inputs — only for skipped>"
+      }
+    ],
+    "approval": "<approved | approved_with_modifications | rejected_revisit | rejected_rethink | null>",
+    "hard_restrictions": ["<verbatim restriction strings>"],
+    "session_goals": ["<BIZ-xxx goal strings>"],
+    "non_goals": ["<explicit non-goal strings>"],
+    "constraints": ["<C-xxx constraint strings>"]
+  },
+  "eng_review": {
+    "status": "<not_started | in_progress | completed | approved | rejected>",
+    "interrogation_ledger": [
+      {
+        "question_id": "Q1",
+        "summary": "<one-line summary>",
+        "status": "<resolved | pending | skipped>",
+        "risk": "<risk — only for pending>",
+        "source": "<source — only for skipped>"
+      }
+    ],
+    "scope_decision": "<scope_reduction | big_change | small_change | null>",
+    "approval": "<approved | approved_with_modifications | rejected_revisit | rejected_rethink | null>",
+    "hard_restrictions": ["<verbatim restriction strings>"],
+    "interfaces_impacted": ["<IF-xxx identifiers>"],
+    "components_impacted": ["<COMP-xxx identifiers>"],
+    "success_criteria": ["<ENG-xxx criteria strings>"]
+  },
+  "manifest_partial": {
+    "_comment": "Accumulated manifest data before final manifest write. Structure mirrors planning-manifest-v2 fields as they are resolved."
+  },
+  "pipeline_entry_point": "<plan-to-linear | tdd | ship | null>"
+}
